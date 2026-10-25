@@ -38,6 +38,12 @@ Written for someone deciding whether to upgrade. Sections: `Fixed`, `Added`, `Re
 
 ### Changed
 
+- `cycle` closes the current subpath (to the last move-to), as TikZ does, rather than the first point
+  of the whole statement.
+- A statement that ends at the next `\draw` or `\coordinate` (a missing `;`) no longer swallows that
+  statement during recovery, so its own problems are reported in the same run (R-4.2.3).
+- Empty option entries (`[]`, `[R,]`, `[,thick]`) are ignored, as pgfkeys does, instead of being a
+  `syntax` error. The `empty-option` rejection fixture is replaced by `missing-semicolon-recovery`.
 - Pin Bun 1.4.4 for local and CI installation.
 
 - Coverage now enforces the existing 100% requirement per file as well as recursively including src.

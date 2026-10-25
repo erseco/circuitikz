@@ -99,7 +99,6 @@ export function resolveCoordinates(tree: SyntaxTree, diagnostics: Diagnostics): 
 			if (point !== undefined) define(statement.name, point, statement.span);
 			continue;
 		}
-		let initial = true;
 		let currentSpan = statement.span;
 		for (const element of statement.elements) {
 			if (element.kind === 'name') {
@@ -107,7 +106,8 @@ export function resolveCoordinates(tree: SyntaxTree, diagnostics: Diagnostics): 
 				continue;
 			}
 			const point = resolve(element.at, base, first);
-			if (initial) { first = point; initial = false; }
+			// TikZ closes `cycle` to the start of the current subpath, i.e. the last move-to.
+			if (element.kind === 'move') first = point;
 			if (element.kind === 'segment' && current !== undefined && point !== undefined) {
 				segments.push({ fromSpan: currentSpan, toSpan: element.at.span, from: current, to: point, operation: element.operation, keys: element.keys, span: element.span });
 			}

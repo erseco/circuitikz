@@ -27,12 +27,12 @@ and one-based columns count UTF-16 code units, with a tab counting as one column
 
 | Construct | Support |
 | --- | --- |
-| `\draw[options] path;` | Component/wire paths; statement recovery at a semicolon outside braces |
+| `\draw[options] path;` | Component/wire paths; statement recovery at a semicolon outside braces, or at the next statement when a `;` is missing |
 | `\coordinate (name) at (x,y);` | Previously defined literal names, including spaces, numbers and Unicode |
 | `(x,y)`, `(xcm,ycm)` | Exact signed decimal hundredths; no rounding or exponent notation |
 | `+(dx,dy)`, `++(dx,dy)` | Both move the pen; only `++` changes the relative reference |
 | `coordinate (name)` on a path | Name the current point; duplicate/undefined names are errors |
-| `--`, `|-`, `-|`, `cycle` | Wires and exact corner points; corners do not become junctions |
+| `--`, `|-`, `-|`, `cycle` | Wires and exact corner points; corners do not become junctions; `cycle` closes the current subpath (to the last move-to) |
 | `R`, `resistor`, `american resistor`, `european resistor` | Resistor, `in` → `out` |
 | `C`, `capacitor` | Capacitor, `in` → `out` |
 | `L`, `inductor`, `american inductor`, `cute inductor`, `european inductor` | Inductor, `in` → `out` |
@@ -77,6 +77,7 @@ Only explicitly enumerated presentation keys are ignored: `mirror`, `thick`, `th
 `color=`, `line width=`, `-*`, `*-`, `*-*`, `-o`, `o-`, `o-o`. Each produces a warning; `strict: true`
 escalates it to an error. Unknown keys, voltage/current/flow annotations and component naming keys
 are errors. Environment/draw options use the same pure-presentation list, plus environment fixbatteries.
+Empty option entries such as `[]` or `[R,]` are ignored, as pgfkeys does.
 
 Unsupported: whole LaTeX documents, macros/expansion, scopes, styles, loops, arbitrary nodes, polar
 coordinates, anchors, coordinate calculations, unsupported units, arcs/curves/shapes, other sources,
