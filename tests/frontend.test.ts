@@ -284,7 +284,7 @@ describe('public M1 API', () => {
 	});
 	it('converts an isolated resistor with both terminals retained', () => {
 		expect(convertCircuitikz(wrap('\\draw (0,0) to[R] (2,0);'))).toEqual({ ok: true,
-			source: 'resistor:R1 "R1" at (180, 80) #amber\n',
+			source: 'resistor:R1 at (180, 80) #amber\n',
 			fence: { bounds: { width: 360, height: 160 }, title: 'Converted CircuiTikZ circuit' },
 			sourceMap: [{ schemdLine: 1, line: 2, column: 13, endColumn: 18 }], diagnostics: [] });
 	});

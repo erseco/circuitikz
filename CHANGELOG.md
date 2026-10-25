@@ -15,6 +15,8 @@ Written for someone deciding whether to upgrade. Sections: `Fixed`, `Added`, `Re
 
 ### Changed (M2)
 
+- The `@schemd/core` peer range is now `^1.2.0`. A part with no label, and every junction, is emitted
+  without a label (`resistor:R1 at …`), so core draws its designator once instead of twice (R-4.5.4).
 - connectivityOf now includes isolated non-junction ports as singleton nets, correcting its former
   connection-only behavior without omitting any input terminal.
 - Conflicting kinds/labels are rejected; repeated invert is idempotent. Zero-length wire steps do not

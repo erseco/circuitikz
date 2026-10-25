@@ -10,7 +10,7 @@ import { placement } from './emitter.js';
 export function checkPlacement(circuit: Circuit, diagnostics: Diagnostics): void {
 	const candidates: { component: SchematicComponent; span: Circuit['parts'][number]['span'] }[] = circuit.parts.map((part) => {
 		const p = placement(circuit, part.from, part.to, part.first !== part.spec.canonical);
-		const common = { id: part.id, label: part.spec.label ?? part.id, x: p.x, y: p.y, line: 1,
+		const common = { id: part.id, label: part.spec.label ?? '', x: p.x, y: p.y, line: 1,
 			orientation: p.orientation as 'right' | 'down' | 'left' | 'up', color: { kind: 'token' as const, value: 'slate' as const } };
 		const kind = part.spec.kind;
 		const component: SchematicComponent = kind === 'resistor' || kind === 'capacitor' || kind === 'inductor'
@@ -19,7 +19,7 @@ export function checkPlacement(circuit: Circuit, diagnostics: Diagnostics): void
 	});
 	for (const j of circuit.junctions) {
 		const v = circuit.vertices[j.vertex]!;
-		candidates.push({ component: { kind: 'junction', id: j.id, label: j.id, line: 1, x: v.x - circuit.bounds.minX + MARGIN,
+		candidates.push({ component: { kind: 'junction', id: j.id, label: '', line: 1, x: v.x - circuit.bounds.minX + MARGIN,
 			y: circuit.bounds.maxY - v.y + MARGIN, color: { kind: 'token', value: 'slate' } }, span: j.span });
 	}
 	const cells = new Map<string, number[]>();

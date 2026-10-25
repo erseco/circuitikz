@@ -13,7 +13,7 @@ export function verify(circuit: Circuit, output: Emission): string | undefined {
 	if (compiled.components.length !== circuit.parts.length + circuit.junctions.length) return 'The component inventory changed';
 	for (const part of circuit.parts) {
 		const actual = compiled.components.find((c) => c.id === part.id);
-		if (actual === undefined || actual.kind !== part.spec.kind || actual.color.kind !== 'token' || actual.color.value !== part.spec.color || actual.label !== (part.spec.label ?? part.id)) return `Component ${part.id} changed identity, kind or label`;
+		if (actual === undefined || actual.kind !== part.spec.kind || actual.color.kind !== 'token' || actual.color.value !== part.spec.color || actual.label !== (part.spec.label ?? '')) return `Component ${part.id} changed identity, kind or label`;
 		const a = circuit.vertices[part.from]!, b = circuit.vertices[part.to]!;
 		const direction = b.x > a.x ? 0 : b.y < a.y ? 1 : b.x < a.x ? 2 : 3;
 		const orientation = ['right', 'down', 'left', 'up'][(direction + (part.first === part.spec.canonical ? 0 : 2)) % 4]!;
@@ -25,7 +25,7 @@ export function verify(circuit: Circuit, output: Emission): string | undefined {
 	}
 	for (const junction of circuit.junctions) {
 		const actual = compiled.components.find((c) => c.id === junction.id), vertex = circuit.vertices[junction.vertex]!;
-		if (actual === undefined || actual.kind !== 'junction' || actual.label !== junction.id || actual.color.kind !== 'token' || actual.color.value !== 'slate'
+		if (actual === undefined || actual.kind !== 'junction' || actual.label !== '' || actual.color.kind !== 'token' || actual.color.value !== 'slate'
 			|| actual.x !== vertex.x - circuit.bounds.minX + MARGIN || actual.y !== circuit.bounds.maxY - vertex.y + MARGIN) return `Junction ${junction.id} changed identity, kind, label, color or position`;
 	}
 

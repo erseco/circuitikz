@@ -53,9 +53,9 @@ the unchanged lockfile; CI runs the same gates on Node 24. Every mandatory comma
 | Measure | Result |
 | --- | --- |
 | Tests | 383 passed |
-| Mutants | 79/79 killed |
+| Mutants | 82/82 killed |
 | Coverage (stmts / branches / funcs / lines) | 873/873, 673/673, 101/101, 613/613, 100% per file |
-| Size | 23929 B minified, 8892 B gzip, 8016 B brotli-11 (9 KiB gates unchanged) |
+| Size | 23935 B minified, 8897 B gzip, 8017 B brotli-11 (9 KiB gates unchanged) |
 
 Changes on top of the M1 follow-up: an endpoint strictly inside another segment is a `geometry`
 error (`t-junction` fixture), a wire with an unconnected end is `unsupported` (`wire-dead-end`
@@ -63,3 +63,7 @@ fixture; `segments-overlap` now also reports its dead end), and parts are matche
 index rather than by span start. Both original conformance documents are unchanged. `cycle-return`
 now closes with an explicit `-- (0,0)`, because `cycle` after `to[R]` is rejected; its expected
 document is byte-identical.
+
+After schemd/circuitikz#2 was settled: the peer range moves to `^1.2.0` (lockfile at core 1.2.0), and
+unlabelled parts and junctions are emitted without a label (R-4.5.4). The nine changed expected
+documents were checked to differ only by the removed `"ID"` labels, including both original fixtures.

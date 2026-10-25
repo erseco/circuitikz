@@ -1,4 +1,4 @@
-source:B1 "B1" at (80, 180) #blue [type=battery orientation=down]
+source:B1 at (80, 180) #blue [type=battery orientation=down]
 resistor:R1 "100" at (180, 80) #amber
 resistor:R2 "200" at (380, 80) #amber
 

@@ -66,7 +66,7 @@ Unconnected component terminals are preserved as singleton nets rather than bein
 
 ### Labels and options
 
-`NAME=text` and `l=text` label the component without synthetic units. Without a label, its ID is used.
+`NAME=text` and `l=text` label the component without synthetic units. A part without a label is emitted without one, so only its designator is drawn (core 1.2.0, R-4.5.4).
 Multiple component kinds or label-bearing keys are errors; there is no guessed precedence. The
 annotation/presentation keys `l_`, `l^`, `a`, `a_`, `a^` also retain their text, with a warning about
 presentation. Text labels support letters, digits, spaces and `. , - + / ( ) : '`. Text braces and
@@ -121,9 +121,10 @@ corresponding work; exact-integer overflow is rejected. Fuzz failures are minimi
 ## Compatibility and validation
 
 Node.js 24+, strict TypeScript, ESM `.js` specifiers, browser/worker-compatible source, no runtime
-or new development dependencies. Bun **1.4.4** is pinned; core `^1.1.0` remains the sole peer. Core 1.1.0
-has an apparent battery glyph/port polarity inconsistency: output preserves **netlist** polarity;
-visual fidelity, including that upstream glyph issue, is not guaranteed.
+or new development dependencies. Bun **1.4.4** is pinned; core `^1.2.0` is the sole peer, because unlabelled
+parts are emitted without a label (R-4.5.4). Core draws its battery glyph with the long plate on the
+`negative` side, so a battery is drawn mirrored until core fixes it; the output keeps **netlist**
+polarity and never swaps terminals to compensate (R-4.4.3).
 
 ```sh
 bun ci
