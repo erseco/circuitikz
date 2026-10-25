@@ -47,6 +47,9 @@ The required diode color `#rose` is a custom alias in core 1.1, not one of its s
 The converter preserves and verifies that alias; a host should define its rose CSS color variable.
 Core's apparent battery glyph/semantic-port visual inconsistency remains an upstream limitation.
 No terminal is exchanged to disguise it. There is no electrical simulation of closed SPST contacts.
+Open question for the maintainer: core 1.1 exposes only `spst` and `spdt`, so `ncs`/`cspst` render
+as an open contact. R-4.4 requires that mapping; a closed variant in core, or rejecting the closed
+names, would need a contract change.
 
 ## Quality evidence
 

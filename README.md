@@ -27,12 +27,12 @@ and one-based columns count UTF-16 code units, with a tab counting as one column
 
 | Construct | Support |
 | --- | --- |
-| `\draw[options] path;` | Component/wire paths; statement recovery at a semicolon outside braces |
+| `\draw[options] path;` | Component/wire paths; statement recovery at a semicolon outside braces, or at the next statement when a `;` is missing |
 | `\coordinate (name) at (x,y);` | Previously defined literal names, including spaces, numbers and Unicode |
 | `(x,y)`, `(xcm,ycm)` | Exact signed decimal hundredths; no rounding or exponent notation |
 | `+(dx,dy)`, `++(dx,dy)` | Both move the pen; only `++` changes the relative reference |
 | `coordinate (name)` on a path | Name the current point; duplicate/undefined names are errors |
-| `--`, `|-`, `-|`, `cycle` | Wires and exact corner points; corners do not become junctions |
+| `--`, `|-`, `-|`, `cycle` | Wires and exact corner points; corners do not become junctions; `cycle` closes the current subpath (to the last move-to) |
 | `R`, `resistor`, `american resistor`, `european resistor` | Resistor, `in` → `out` |
 | `C`, `capacitor` | Capacitor, `in` → `out` |
 | `L`, `inductor`, `american inductor`, `cute inductor`, `european inductor` | Inductor, `in` → `out` |
@@ -64,7 +64,8 @@ Every nonblank output line has a source-map entry, including connection lines.
 Vertices coincide only at exactly equal coordinates. Crossings do not create electrical connections.
 Positive-length collinear overlaps are errors. A source-ordered wire spanning forest removes redundant
 cycle edges. Zero-length wire steps draw no segment and do not inflate junction degree. Real vertices
-with three or more edge ends become junctions. Wire geometry with no terminal or junction is rejected.
+with three or more edge ends become junctions. Wire geometry with no terminal or junction is rejected, as is a wire with an unconnected end and an
+endpoint that lands inside another segment (split that segment to make a junction).
 Unconnected component terminals are preserved as singleton nets rather than being omitted.
 
 ### Labels and options
@@ -81,6 +82,7 @@ Only explicitly enumerated presentation keys are ignored: `mirror`, `thick`, `th
 `color=`, `line width=`, `-*`, `*-`, `*-*`, `-o`, `o-`, `o-o`, and source-defined circle/diamond/rectjoinfill endpoint combinations listed in m3-design.md. Each produces a warning; `strict: true`
 escalates it to an error. Unknown keys, voltage/current/flow annotations and component naming keys
 are errors. Environment/draw options use the same pure-presentation list, plus environment fixbatteries.
+Empty option entries such as `[]` or `[R,]` are ignored, as pgfkeys does.
 
 Unsupported: whole LaTeX documents, macros/expansion, scopes, styles, loops, arbitrary nodes, polar
 coordinates, anchors, coordinate calculations, unsupported units, arcs/curves/shapes, other sources,
@@ -127,7 +129,8 @@ or new development dependencies. Bun **1.4.4** is pinned; core `^1.1.0` remains 
 has an apparent battery glyph/port polarity inconsistency: output preserves **netlist** polarity;
 visual fidelity, including that upstream glyph issue, is not guaranteed. `#rose` is a core custom
 color alias; hosts should define the corresponding rose CSS variable. Closed/open SPST states are
-not electrically simulated.
+not electrically simulated, and `ncs`/`cspst` are drawn as core's open `spst` symbol: core 1.1 has
+only `spst` and `spdt` switch variants, and R-4.4 maps all four names to `switch [type=spst]`.
 
 Ground uses the graph point as its unary terminal and normalized symbol center. If a mandatory
 junction coincides with the ground body, conversion reports a geometry collision. Place the ground

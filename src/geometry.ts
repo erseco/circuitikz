@@ -2,8 +2,7 @@ import { componentObstacleRectangle, componentRectangle } from '@schemd/core';
 import type { SchematicComponent } from '@schemd/core';
 import type { Circuit } from './circuit.js';
 import { Diagnostics, placementOverlap, labelExtent } from './diagnostics.js';
-import { MARGIN } from './limits.js';
-import { placement } from './emitter.js';
+import { canvas, placement } from './emitter.js';
 
 /** Preflight representability using core's public shape geometry, before the
  * correctness oracle runs. A fixed-cell broad phase bounds local comparisons. */
@@ -20,9 +19,8 @@ export function checkPlacement(circuit: Circuit, diagnostics: Diagnostics): void
 		return { component, span: part.span };
 	});
 	for (const j of circuit.junctions) {
-		const v = circuit.vertices[j.vertex]!;
-		candidates.push({ component: { kind: 'junction', id: j.id, label: j.id, line: 1, x: v.x - circuit.bounds.minX + MARGIN,
-			y: circuit.bounds.maxY - v.y + MARGIN, color: { kind: 'token', value: 'slate' } }, span: j.span });
+		candidates.push({ component: { kind: 'junction', id: j.id, label: j.id, line: 1, ...canvas(circuit, circuit.vertices[j.vertex]!),
+			color: { kind: 'token', value: 'slate' } }, span: j.span });
 	}
 	const cells = new Map<string, number[]>();
 	const rectangles = candidates.map(({ component }) => componentObstacleRectangle(component, 0));

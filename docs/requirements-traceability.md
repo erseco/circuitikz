@@ -39,8 +39,8 @@ The audit explains design decisions and the implementation sequence. All origina
 | R-4.1.4 | M1 | frontend scanner exact token arrays, Unicode/tab and line endings | columns count UTF-16 units; CRLF is one newline |
 | R-4.2.1 | M1 | frontend AST and missing delimiters; rejection fixtures for each parser message | statement budget is inclusive |
 | R-4.2.2 | M1 | frontend unsupported/nested statements; unknown-statement rejection | independent errors are retained |
-| R-4.2.3 | M1 | frontend: multiple statement problems; recovery rejection including semicolon in braces | recovery ignores semicolons in braces; recovery stops at the environment end |
-| R-4.3.1 | M1 | frontend exact coordinates, names, cycle, numeric forms and overflow; rejection corpus | coordinate precision is never rounded; fractional coordinate overflow is rejected; cycles use the first path point |
+| R-4.2.3 | M1 | frontend: multiple statement problems; recovery rejection including semicolon in braces; missing-semicolon-recovery resynchronises at the next statement | recovery ignores semicolons in braces; recovery stops at the environment end; recovery stops at the next statement command |
+| R-4.3.1 | M1 | frontend exact coordinates, names, cycle, numeric forms and overflow; rejection corpus | coordinate precision is never rounded; fractional coordinate overflow is rejected; cycle closes the current subpath |
 | R-4.3.2 | M2 | All supported operations expand into exact graph segments | conversion/conformance/graph/verification tests and 86-mutant gate |
 | R-4.3.3 | M1 | frontend undefined/duplicate and independent missing names; corresponding rejections | duplicate names are diagnosed |
 | R-4.3.4 | M1 | frontend: + versus ++, actual pen endpoints and reference state | plus leaves the relative reference unchanged; relative increments use their reference |
@@ -57,8 +57,8 @@ The audit explains design decisions and the implementation sequence. All origina
 | R-5.1.3 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 family tests and source-cited fixtures included |
 | R-5.1.4 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 family tests and source-cited fixtures included |
 | R-5.1.5 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 family tests and source-cited fixtures included |
-| R-5.1.6 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 family tests and source-cited fixtures included |
-| R-5.1.7 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 family tests and source-cited fixtures included |
+| R-5.1.6 | M2 | conversion dead-end tests; wire-orphan and wire-dead-end rejections | dead-end wires are rejected; dead-end wires are rejected only at single edge ends |
+| R-5.1.7 | M2 | conversion T-junction test; segments-overlap and t-junction rejections | positive-length overlaps are rejected; an endpoint inside another segment is a geometry error; overlaps suppress duplicate interior diagnostics |
 | R-5.2.1 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 family tests and source-cited fixtures included |
 | R-5.2.2 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 family tests and source-cited fixtures included |
 | R-5.2.3 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 family tests and source-cited fixtures included |

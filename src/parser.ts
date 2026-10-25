@@ -8,6 +8,8 @@ import { LIMITS } from './limits.js';
 class Parser {
 	private cursor = 0;
 	private components = 0;
+	/** Set when a statement ended at the next statement's command: recovery must not skip it. */
+	private synced = false;
 
 	constructor(private readonly tokens: readonly Token[], private readonly diagnostics: Diagnostics) {}
 
@@ -28,6 +30,7 @@ class Parser {
 
 	/** Skip exactly one broken statement, respecting braces and environment end. */
 	private recover(start: number): void {
+		if (this.synced) { this.synced = false; return; }
 		let depth = 0;
 		for (let i = start; i < this.cursor; i += 1) {
 			if (this.tokens[i]!.value === '{') depth += 1;
@@ -51,7 +54,8 @@ class Parser {
 		while (!this.boundary()) {
 			const token = this.token;
 			if (depth === 0 && !math && (token.value === ',' || token.value === ']')) {
-				if (parts.length === 0) { syntax(this.diagnostics, 'a non-empty option', token); return undefined; }
+				// pgfkeys ignores empty entries, as in `[]` or `[R,]`.
+				if (parts.length === 0) { this.take(); if (token.value === ']') return keys; continue; }
 				const equal = parts.findIndex((p) => p.value === '=');
 				const nameParts = equal < 0 ? parts : parts.slice(0, equal);
 				const name = textOf(nameParts);
@@ -148,7 +152,7 @@ class Parser {
 				continue;
 			}
 			if (!['--', '|-', '-|', 'to'].includes(operation.value)) {
-				if (operation.kind === 'command') { this.finish(); return undefined; }
+				if (operation.kind === 'command') { this.finish(); this.synced = true; return undefined; }
 				unsupported(this.diagnostics, operation.value, operation); return undefined;
 			}
 			this.take();

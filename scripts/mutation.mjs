@@ -233,6 +233,27 @@ const mutants = [
 		tests: ['tests/frontend.test.ts']
 	},
 	{
+		name: 'cycle closes the current subpath',
+		file: 'src/coordinates.ts',
+		from: 'if (element.kind === \'move\') first = point;',
+		to: 'if (element === statement.elements[0]) first = point;',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'recovery stops at the next statement command',
+		file: 'src/parser.ts',
+		from: 'if (this.synced) { this.synced = false; return; }',
+		to: 'this.synced = false;',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'empty option entries are ignored',
+		file: 'src/parser.ts',
+		from: 'if (parts.length === 0) { this.take(); if (token.value === \']\') return keys; continue; }',
+		to: 'if (parts.length === 0) { syntax(this.diagnostics, \'a non-empty option\', token); return undefined; }',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
 		name: 'unknown host options throw',
 		file: 'src/options.ts',
 		from: 'Reflect.ownKeys(options)',
@@ -357,14 +378,18 @@ const mutants = [
 	{"name": "component IDs start at one in source order", "file": "src/graph.ts", "from": "(counts.get(spec.prefix) ?? 0) + 1", "to": "(counts.get(spec.prefix) ?? 0) + 2", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]},
 	{"name": "wire cycles do not add connections", "file": "src/graph.ts", "from": "if (nets.join(from, to)) links.push", "to": "if ((nets.join(from, to), true)) links.push", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]},
 	{"name": "coincident vertices share connectivity", "file": "src/graph.ts", "from": "let id = ids.get(key);", "to": "let id: number | undefined;", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]},
-	{"name": "positive-length overlaps are rejected", "file": "src/graph.ts", "from": "if (item.low < high) overlap", "to": "if (false) overlap", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]},
+	{"name": "positive-length overlaps are rejected", "file": "src/graph.ts", "from": "if (item.low < high) { overlap", "to": "if (false) { overlap", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts", "tests/rejections.test.ts"]},
 	{"name": "empty wire steps do not create junctions", "file": "src/graph.ts", "from": "if (from === to && (segment.spec === undefined || segment.spec.kind === 'wire')) continue;", "to": "if (false) continue;", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]},
 	{"name": "connections retain pen direction", "file": "src/graph.ts", "from": "forward = earliest.forward;", "to": "forward = !earliest.forward;", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]},
 	{"name": "connections retain source order", "file": "src/graph.ts", "from": "a.order - b.order", "to": "b.order - a.order", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]},
 	{"name": "isolated graph terminals are not omitted", "file": "src/graph.ts", "from": "terminals.push(terminal);", "to": "if (false) terminals.push(terminal);", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]},
-	{"name": "emission flips the y axis exactly", "file": "src/emitter.ts", "from": "(circuit.bounds.maxY - a.y) + (circuit.bounds.maxY - b.y)", "to": "(a.y - circuit.bounds.maxY) + (b.y - circuit.bounds.maxY)", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]},
+	{"name": "an endpoint inside another segment is a geometry error", "file": "src/graph.ts", "from": "item.low < at && at < item.high", "to": "item.low < at && at < item.low", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts", "tests/rejections.test.ts"]},
+	{"name": "dead-end wires are rejected only at single edge ends", "file": "src/graph.ts", "from": "vertices[at]!.degree === 1 &&", "to": "vertices[at]!.degree >= 1 &&", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts", "tests/rejections.test.ts"]},
+	{"name": "dead-end wires are rejected", "file": "src/graph.ts", "from": "unsupported(diagnostics, 'A wire with an unconnected end', wire.edge.span);", "to": ";", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts", "tests/rejections.test.ts"]},
+	{"name": "overlaps suppress duplicate interior diagnostics", "file": "src/graph.ts", "from": "if (!overlapping) for", "to": "for", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts", "tests/rejections.test.ts"]},
+	{"name": "emission flips the y axis exactly", "file": "src/emitter.ts", "from": "y: circuit.bounds.maxY - v.y + MARGIN", "to": "y: v.y - circuit.bounds.maxY + MARGIN", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]},
 	{"name": "source maps track nonblank declaration lines", "file": "src/emitter.ts", "from": "schemdLine: lines.length", "to": "schemdLine: lines.length + 1", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]},
-	{"name": "midpoints round down after normalization", "file": "src/emitter.ts", "from": "Math.floor(((a.x - circuit.bounds.minX) + (b.x - circuit.bounds.minX)) / 2)", "to": "Math.ceil(((a.x - circuit.bounds.minX) + (b.x - circuit.bounds.minX)) / 2)", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]},
+	{"name": "midpoints round down after normalization", "file": "src/emitter.ts", "from": "x: Math.floor((p.x + q.x) / 2)", "to": "x: Math.ceil((p.x + q.x) / 2)", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]},
 	{"name": "compiled kinds are independently checked", "file": "src/verify.ts", "from": "actual.kind !== part.spec.kind || ", "to": " ", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]},
 	{"name": "compiled labels are independently checked", "file": "src/verify.ts", "from": " || actual.label !== (part.spec.label ?? part.id)", "to": "", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]},
 	{"name": "compiled orientations are independently checked", "file": "src/verify.ts", "from": "(actual.orientation ?? 'right') !== orientation", "to": "false", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]},

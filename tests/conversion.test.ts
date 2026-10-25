@@ -74,10 +74,22 @@ describe('M2 conversion', () => {
 		expect(result.components.filter((c) => c.kind === 'junction')).toEqual([]);
 	});
 
-	it('allows dangling wire stubs on a component without inventing a terminal', () => {
-		const result = convert('\\draw (0,0) to[R] (2,0) -- (3,0);');
-		expect(result.nets).toEqual([['R1.in'], ['R1.out']]);
-		expect(result.source).toBe('resistor:R1 "R1" at (180, 80) #amber\n');
+	it('rejects dangling wire stubs, which schemd cannot draw, instead of dropping them', () => {
+		const unconnected = { code: 'unsupported', severity: 'error', message: 'A wire with an unconnected end is not supported; use the documented CircuiTikZ subset instead.' };
+		expect(convertCircuitikz(wrap('\\draw (0,0) to[R] (2,0) -- (3,0);'))).toMatchObject({ ok: false, source: undefined,
+			diagnostics: [{ ...unconnected, line: 2, column: 25, endColumn: 27 }] });
+		expect(convertCircuitikz(wrap('\\draw (0,0) -- (1,0) (0,0) -- (0,1) (0,0) -- (-1,0);')).diagnostics).toEqual([
+			{ ...unconnected, line: 2, column: 13, endColumn: 15 }, { ...unconnected, line: 2, column: 28, endColumn: 30 }, { ...unconnected, line: 2, column: 43, endColumn: 45 }]);
+	});
+
+	it('rejects an endpoint inside another segment instead of leaving a T unconnected', () => {
+		const result = convertCircuitikz(wrap('\\draw (0,0) to[R] (2,0) -- (4,0) to[R] (6,0);\n\\draw (3,0) to[C] (3,-2) -- (3,-3) to[R] (5,-3);'));
+		expect(result).toMatchObject({ ok: false, source: undefined, diagnostics: [{ code: 'geometry', severity: 'error',
+			message: 'Endpoint (300,0) lies inside another segment and connects to nothing; split that segment there or move the endpoint.', line: 3, column: 7, endColumn: 12 }] });
+		// Splitting the wire at the T gives a real junction.
+		const split = convert('\\draw (0,0) to[R] (2,0) -- (3,0) -- (4,0) to[R] (6,0);\n\\draw (3,0) to[C] (3,-2) -- (3,-3) to[R] (5,-3);');
+		expect(split.components.filter((c) => c.kind === 'junction')).toHaveLength(1);
+		expect(split.nets).toContainEqual(['C1.in', 'R1.out', 'R2.in']);
 	});
 
 	it('keeps a redundant zero-length wire from duplicating electrical connections', () => {

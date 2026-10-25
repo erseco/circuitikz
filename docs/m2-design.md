@@ -21,6 +21,9 @@ review item before these proposals are merged upstream.
   branch and are removed before degree calculation. Original nondegenerate degrees determine junctions
   before cycle pruning. Collinear primitive-integer direction groups plus interval sweeps detect overlaps;
   geometric intersections never add vertices. Corners contract without synthetic junctions.
+  Proposal: an endpoint strictly inside another collinear-direction segment is a `geometry` error
+  (R-5.1.7's spirit: ambiguous intended connectivity), and a wire chain that ends at a vertex with
+  one edge end is `unsupported` (extends R-5.1.6: schemd cannot draw it, so it is not dropped silently).
 - **Connections:** contract a separate terminal/junction forest; wire-bearing paths use the earliest
   wire operation's direction and source order. Direct terminal contacts use source appearance. Junction
   anchors are visited before terminal anchors, making every remaining ordering choice deterministic.

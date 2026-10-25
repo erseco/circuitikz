@@ -1,0 +1,10 @@
+[
+  {
+    "code": "geometry",
+    "message": "Endpoint (300,0) lies inside another segment and connects to nothing; split that segment there or move the endpoint.",
+    "line": 3,
+    "column": 7,
+    "endColumn": 12,
+    "severity": "error"
+  }
+]

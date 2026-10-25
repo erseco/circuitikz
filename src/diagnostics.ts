@@ -63,6 +63,10 @@ export function overlap(d: Diagnostics, span: Span): void {
 	geometry(d, 'Segments overlap along their length; separate them or join them at explicit endpoints.', span);
 }
 
+export function interior(d: Diagnostics, point: string, span: Span): void {
+	geometry(d, `Endpoint ${point} lies inside another segment and connects to nothing; split that segment there or move the endpoint.`, span);
+}
+
 export function internal(d: Diagnostics, reason: string, span: Span): void {
 	d.add('internal', `Conversion verification failed: ${reason}; please report this with the input.`, span);
 }
