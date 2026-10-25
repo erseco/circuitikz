@@ -233,6 +233,27 @@ const mutants = [
 		tests: ['tests/frontend.test.ts']
 	},
 	{
+		name: 'cycle closes the current subpath',
+		file: 'src/coordinates.ts',
+		from: 'if (element.kind === \'move\') first = point;',
+		to: 'if (element === statement.elements[0]) first = point;',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'recovery stops at the next statement command',
+		file: 'src/parser.ts',
+		from: 'if (this.synced) { this.synced = false; return; }',
+		to: 'this.synced = false;',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'empty option entries are ignored',
+		file: 'src/parser.ts',
+		from: 'if (parts.length === 0) { this.take(); if (token.value === \']\') return keys; continue; }',
+		to: 'if (parts.length === 0) { syntax(this.diagnostics, \'a non-empty option\', token); return undefined; }',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
 		name: 'unknown host options throw',
 		file: 'src/options.ts',
 		from: 'Reflect.ownKeys(options)',

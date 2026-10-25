@@ -78,7 +78,8 @@ This example **parses but does not convert**. Component kinds, labels, polarity,
 connections are not validated by the M1 front end.
 
 Coordinates support absolute `(x,y)` and `(xcm,ycm)`, relative `+(dx,dy)` and `++(dx,dy)`, references
-to earlier named coordinates, inline `coordinate (name)`, and `cycle` as a segment destination.
+to earlier named coordinates, inline `coordinate (name)`, and `cycle` as a segment destination, closing the current subpath (back to the last move-to), as
+TikZ does. Empty option entries such as `[]` or `[R,]` are ignored, as pgfkeys does.
 Names are literal TikZ names: numbers, spaces, hyphens and Unicode work; anchors, calculations,
 macros and coordinate-system punctuation do not. Repeated definitions and undefined references
 produce `reference` errors.

@@ -140,10 +140,11 @@ describe('span-aware parser and resolver', () => {
 		expect(read(wrap('\\draw (0,0) -- (2,0) -- cycle;')).segments.at(-1)?.to).toEqual({ x: 0, y: 0 });
 		const result = read(wrap('\\draw (1,1) coordinate (A) -- ++(1,0) (0,0) -- (A) -- cycle;'));
 		expect(result.diagnostics).toEqual([]);
+		// `cycle` closes the current subpath, which the move to (0,0) started.
 		expect(result.segments.map(({ from, to }) => [from, to])).toEqual([
 			[{ x: 100, y: 100 }, { x: 200, y: 100 }],
 			[{ x: 0, y: 0 }, { x: 100, y: 100 }],
-			[{ x: 100, y: 100 }, { x: 100, y: 100 }]
+			[{ x: 100, y: 100 }, { x: 0, y: 0 }]
 		]);
 	});
 
@@ -203,10 +204,10 @@ describe('span-aware parser and resolver', () => {
 	});
 
 	it.each([
-		'\\draw[] (0,0);', '\\draw[,thick] (0,0);', '\\draw[=red] (0,0);',
+		'\\draw[=red] (0,0);',
 		'\\draw[color={red] (0,0);', '\\draw[color=$red] (0,0);', '\\draw[color=red}];',
-		'\\draw[color=[red]] (0,0);', '\\draw (0,0) to (1,0);', '\\draw (0,0) to[] (1,0);',
-		'\\draw (0,0) to[R,] (1,0);', '\\coordinate A at (0,0);', '\\coordinate (A.north) at (0,0);',
+		'\\draw[color=[red]] (0,0);', '\\draw (0,0) to (1,0);',
+		'\\draw (0,0) to[=R] (1,0);', '\\coordinate A at (0,0);', '\\coordinate (A.north) at (0,0);',
 		'\\coordinate (A at (0,0);', '\\coordinate (A) (0,0);', '\\coordinate (A) at foo;',
 		'\\draw (0,0) coordinate (A.north);', '\\draw (0,0) coordinate A;', '\\draw (0,0) -- ((0,0));',
 		'\\draw (0,0) -- (0.001,0);', '\\draw (0,0) to[R] (x);', '\\draw (0,0) -- (x);',
@@ -220,7 +221,20 @@ describe('span-aware parser and resolver', () => {
 	});
 
 	it('rejects malformed environment options before parsing statements', () => {
-		expect(read('\\begin{circuitikz}[]\\end{circuitikz}').diagnostics).toEqual([{ code: 'syntax', severity: 'error', message: 'Expected a non-empty option; correct the statement before converting it.', line: 1, column: 20, endColumn: 21 }]);
+		expect(read('\\begin{circuitikz}[=x]\\end{circuitikz}').diagnostics).toEqual([{ code: 'syntax', severity: 'error', message: 'Expected an option name before =; correct the statement before converting it.', line: 1, column: 20, endColumn: 21 }]);
+	});
+
+	it('ignores empty option entries as pgfkeys does', () => {
+		expect(read('\\begin{circuitikz}[]\\end{circuitikz}')).toMatchObject({ diagnostics: [], tree: { keys: [] } });
+		expect(read(wrap('\\draw[,thick,] (0,0) to[R,] (1,0) to[] (2,0);'))).toMatchObject({ diagnostics: [], tree: { statements: [{
+			keys: [{ name: 'thick' }], elements: [{ kind: 'move' }, { keys: [{ name: 'R' }] }, { keys: [] }] }] } });
+	});
+
+	it('resynchronises at the next statement after a missing semicolon', () => {
+		expect(read(wrap('\\draw (0,0) -- (1,0)\n\\draw (0,0) -- (x);')).diagnostics).toEqual([
+			{ code: 'syntax', severity: 'error', message: 'Expected ; at the end of the statement; correct the statement before converting it.', line: 2, column: 21, endColumn: 21 },
+			{ code: 'reference', severity: 'error', message: expect.stringContaining('x'), line: 3, column: 16, endColumn: 19 }
+		]);
 	});
 
 	it('preserves word boundaries in option keys and values', () => {

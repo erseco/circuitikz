@@ -1,0 +1,18 @@
+[
+  {
+    "code": "syntax",
+    "message": "Expected ; at the end of the statement; correct the statement before converting it.",
+    "line": 2,
+    "column": 24,
+    "endColumn": 24,
+    "severity": "error"
+  },
+  {
+    "code": "unsupported",
+    "message": "This coordinate form is not supported; use the documented CircuiTikZ subset instead.",
+    "line": 3,
+    "column": 28,
+    "endColumn": 37,
+    "severity": "error"
+  }
+]
