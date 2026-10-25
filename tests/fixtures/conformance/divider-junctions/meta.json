@@ -1,0 +1,10 @@
+{
+  "origin": "REQUIREMENTS.md §4.3 (junctions)",
+  "fence": "schemd bounds=\"660x460\" title=\"Converted CircuiTikZ circuit\"",
+  "note": "(3,3) and (3,0) each meet three segments, so each becomes a junction; the corners (5,3), (5,0) and (0,0) are dropped and left to the router. $R_1$ becomes the schemd math label R_1.",
+  "connectivity": [
+    ["B1.negative", "R1.in"],
+    ["C1.in", "R1.out", "R2.in"],
+    ["B1.positive", "C1.out", "R2.out"]
+  ]
+}

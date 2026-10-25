@@ -1,0 +1,10 @@
+{
+  "origin": "https://github.com/schemd/core/issues/7",
+  "fence": "schemd bounds=\"560x360\" title=\"Converted CircuiTikZ circuit\"",
+  "note": "battery1 draws its long, positive plate at the start of its segment unless fixbatteries is set (circuitikz tex/pgfcircbipoles.tex, Battery 1). The start is (0,0), so the positive terminal joins the return path from R2. Labels are transcribed, not given units: R=100 prints 100.",
+  "connectivity": [
+    ["B1.negative", "R1.in"],
+    ["R1.out", "R2.in"],
+    ["B1.positive", "R2.out"]
+  ]
+}

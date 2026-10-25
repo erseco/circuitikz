@@ -1,0 +1,7 @@
+source:B1 "B1" at (80, 180) #blue [type=battery orientation=down]
+resistor:R1 "100" at (180, 80) #amber
+resistor:R2 "200" at (380, 80) #amber
+
+B1.negative -> R1.in #blue [ortho]
+R1.out -> R2.in #amber [ortho]
+R2.out -> B1.positive #amber [ortho]

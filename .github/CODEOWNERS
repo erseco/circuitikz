@@ -1,0 +1,8 @@
+# Every change needs the maintainer's review; the contract and the gates most of all.
+*                       @Sirneij
+/REQUIREMENTS.md        @Sirneij
+/src/types.ts           @Sirneij
+/scripts/               @Sirneij
+/vitest.config.ts       @Sirneij
+/tsconfig*.json         @Sirneij
+/.github/               @Sirneij

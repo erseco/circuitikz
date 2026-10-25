@@ -1,0 +1,33 @@
+name: Wrong or failed conversion
+description: CircuiTikZ that converts wrongly, is rejected when it should not be, or produces an internal diagnostic.
+title: "[CONVERSION] "
+body:
+  - type: textarea
+    id: input
+    attributes:
+      label: The CircuiTikZ
+      description: One circuitikz environment, as small as still shows the problem.
+      render: tex
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+      description: The diagnostics, or the schemd it emitted.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: For a wrong conversion, say which terminals should be connected and which are.
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      placeholder: "@schemd/circuitikz 0.1.0, @schemd/core 1.1.0"
+    validations:
+      required: true

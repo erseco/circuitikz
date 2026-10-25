@@ -1,0 +1,36 @@
+name: Design proposal
+description: A new component, key, coordinate form or emission rule, or a change to REQUIREMENTS.md. Settle it here before writing code.
+title: "[DESIGN] "
+body:
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What CircuiTikZ construct, what schemd it becomes, and which REQUIREMENTS.md sections change.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: For a component, the CircuiTikZ source file and shape that fix its terminal order and polarity. For a key, why it can or cannot change topology.
+    validations:
+      required: true
+  - type: textarea
+    id: fixtures
+    attributes:
+      label: Fixtures
+      description: The conformance and rejection cases you will add.
+    validations:
+      required: true
+  - type: checkboxes
+    id: contract
+    attributes:
+      label: Contract
+      options:
+        - label: Nothing is approximated or dropped without a diagnostic.
+          required: true
+        - label: No runtime dependency is added.
+          required: true
+        - label: I will keep coverage at 100% and add a mutant for every load-bearing rule.
+          required: true

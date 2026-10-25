@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions about schemd itself
+    url: https://github.com/schemd/core/issues
+    about: The compiler, its DSL, and its diagnostics live in schemd/core.
