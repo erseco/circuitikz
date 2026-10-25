@@ -8,7 +8,7 @@ import { convertCircuitikz } from '@schemd/circuitikz';
 import { compileSchematic } from '@schemd/core';
 const result = convertCircuitikz(String.raw`\begin{circuitikz}
 \draw (0,0) to[battery1] (0,2) to[R=100] (2,2)
-  to[R=200] (4,2) -- (4,0) -- cycle;
+  to[R=200] (4,2) -- (4,0) -- (0,0);
 \end{circuitikz}`);
 if (result.ok) {
   const compiled = compileSchematic(result.source!, result.fence!);
@@ -32,7 +32,7 @@ and one-based columns count UTF-16 code units, with a tab counting as one column
 | `(x,y)`, `(xcm,ycm)` | Exact signed decimal hundredths; no rounding or exponent notation |
 | `+(dx,dy)`, `++(dx,dy)` | Both move the pen; only `++` changes the relative reference |
 | `coordinate (name)` on a path | Name the current point; duplicate/undefined names are errors |
-| `--`, `|-`, `-|`, `cycle` | Wires and exact corner points; corners do not become junctions; `cycle` closes the current subpath (to the last move-to) |
+| `--`, `|-`, `-|`, `cycle` | Wires and exact corner points; corners do not become junctions; `cycle` closes the current subpath (to the last move-to); after a `to[...]` in that subpath it is rejected, because CircuiTikZ closes it inside the component drawing |
 | `R`, `resistor`, `american resistor`, `european resistor` | Resistor, `in` → `out` |
 | `C`, `capacitor` | Capacitor, `in` → `out` |
 | `L`, `inductor`, `american inductor`, `cute inductor`, `european inductor` | Inductor, `in` → `out` |

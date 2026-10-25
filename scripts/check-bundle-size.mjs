@@ -28,8 +28,9 @@ const BUDGETS = [
 		   M3 families, unary ground and precise UTF-16 label spans measure
 		   9174 B gzip / 8278 B brotli and retain these same 9 KiB gates.
 		   Review fixes (T-endpoint and dead-end wire rejection in the graph, subpath
-		   cycle, recovery resync, empty option entries) measure 8615 -> 8810 B gzip on
-		   M2 and 9181 -> 9373 B gzip / 8278 -> 8454 B brotli on M3, so the gzip gate
+		   cycle and its rejection after to[...], recovery resync, empty option entries)
+		   measure 8615 -> 8892 B gzip on M2 and 9181 -> 9458 B gzip / 8278 -> 8530 B
+		   brotli on M3, so the gzip gate
 		   moves to 9.5 KiB; brotli keeps 9 KiB. Both stay below R-8.5.3's 12 KiB ceiling. */
 		maxGzipBytes: 9.5 * 1024,
 		maxBrotliBytes: 9 * 1024

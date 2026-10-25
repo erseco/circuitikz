@@ -54,12 +54,12 @@ the unchanged lockfile; CI runs the same gates on Node 24. Every mandatory comma
 
 | Measure | Result |
 | --- | --- |
-| Tests | 829 passed |
-| Mutants | 93/93 killed |
-| Coverage (stmts / branches / funcs / lines) | 907/907, 732/732, 103/103, 634/634, 100% per file |
-| Size | 25710 B minified, 9373 B gzip, 8454 B brotli-11 |
+| Tests | 831 passed |
+| Mutants | 94/94 killed |
+| Coverage (stmts / branches / funcs / lines) | 914/914, 738/738, 104/104, 638/638, 100% per file |
+| Size | 25951 B minified, 9458 B gzip, 8530 B brotli-11 |
 
-The merged M1/M2 fixes move gzip past the 9 KiB gate (9181 -> 9373 B). The gzip gate moves to
+The merged M1/M2 fixes move gzip past the 9 KiB gate (9181 -> 9458 B). The gzip gate moves to
 9.5 KiB with the measurement recorded in `scripts/check-bundle-size.mjs`; brotli keeps 9 KiB and
 both stay below the 12288 B release ceiling. The vertex-to-canvas mapping is now one `canvas()`
-helper shared by the emitter and the placement preflight. 78 conformance and 62 rejection fixtures.
+helper shared by the emitter and the placement preflight. 78 conformance and 63 rejection fixtures.

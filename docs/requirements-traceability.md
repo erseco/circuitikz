@@ -9,7 +9,7 @@ The audit explains design decisions and the implementation sequence. All origina
 | --- | --- | --- | --- |
 | R-1.1 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 family tests and source-cited fixtures included |
 | R-1.2 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 family tests and source-cited fixtures included |
-| R-1.3 | M1 partial | frontend parser/API and rejection corpus; component semantics deferred | independent errors are retained |
+| R-1.3 | M1–M3 | rejection corpus (63 cases); conversion and m3 suites for unsupported kinds, keys and geometry; t-junction, wire-dead-end and cycle-after-component rejections | independent errors are retained; an endpoint inside another segment is a geometry error; dead-end wires are rejected; cycle after to[...] is rejected |
 | R-2.1.1 | Preserved | packaging: dependency contract; manifest/lockfile unchanged | No dependency added |
 | R-2.1.2 | Enforced | source-policy: regex and syntax-token checks; smoke: browser-target VM | Policy has positive violation samples |
 | R-2.1.3 | Preserved | packaging: dependency contract; manifest/lockfile unchanged | No dependency added |
@@ -25,8 +25,8 @@ The audit explains design decisions and the implementation sequence. All origina
 | R-2.5.1 | M1 | frontend: host errors and pathological input; fuzz: valid options, no throws, timed worker | strict option types are checked; the source limit is inclusive |
 | R-2.5.2 | M1 evidence | Bounded scanner/parser loop inspection; frontend pathological inputs; timed fuzz | recovery stops at the environment end |
 | R-2.5.3 | M2 | All active graph/front-end ceilings have boundary tests and mutants, including junctions | conversion/conformance/graph/verification tests and 86-mutant gate |
-| R-3.1 | M1 | frontend public API; smoke built exports; rejection corpus; pending error per §10 | M1 never returns unsupported input as a success |
-| R-3.2 | M1 | frontend public API; smoke built exports; rejection corpus; pending error per §10 | M1 never returns unsupported input as a success |
+| R-3.1 | M2 | conversion API suites; built smoke converts the issue example; rejection corpus with no partial output | M1 never returns unsupported input as a success |
+| R-3.2 | M2 | conversion API suites; built smoke converts the issue example; rejection corpus with no partial output | M1 never returns unsupported input as a success |
 | R-3.3 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 family tests and source-cited fixtures included |
 | R-3.4 | M1 | frontend: stable phase/position sorting, recovery and independent missing names | diagnostics sort by line then column; independent errors are retained |
 | R-3.5 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 family tests and source-cited fixtures included |
@@ -40,7 +40,7 @@ The audit explains design decisions and the implementation sequence. All origina
 | R-4.2.1 | M1 | frontend AST and missing delimiters; rejection fixtures for each parser message | statement budget is inclusive |
 | R-4.2.2 | M1 | frontend unsupported/nested statements; unknown-statement rejection | independent errors are retained |
 | R-4.2.3 | M1 | frontend: multiple statement problems; recovery rejection including semicolon in braces; missing-semicolon-recovery resynchronises at the next statement | recovery ignores semicolons in braces; recovery stops at the environment end; recovery stops at the next statement command |
-| R-4.3.1 | M1 | frontend exact coordinates, names, cycle, numeric forms and overflow; rejection corpus | coordinate precision is never rounded; fractional coordinate overflow is rejected; cycle closes the current subpath |
+| R-4.3.1 | M1 | frontend exact coordinates, names, cycle, numeric forms and overflow; rejection corpus | coordinate precision is never rounded; fractional coordinate overflow is rejected; cycle closes the current subpath; cycle after to[...] is rejected |
 | R-4.3.2 | M2 | All supported operations expand into exact graph segments | conversion/conformance/graph/verification tests and 86-mutant gate |
 | R-4.3.3 | M1 | frontend undefined/duplicate and independent missing names; corresponding rejections | duplicate names are diagnosed |
 | R-4.3.4 | M1 | frontend: + versus ++, actual pen endpoints and reference state | plus leaves the relative reference unchanged; relative increments use their reference |
@@ -75,13 +75,13 @@ The audit explains design decisions and the implementation sequence. All origina
 | R-6.2 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 family tests and source-cited fixtures included |
 | R-6.3 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 family tests and source-cited fixtures included |
 | R-6.4 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 family tests and source-cited fixtures included |
-| R-7.1.1 | M1 | diagnostics module; frontend complete expected objects; 36 rejection fixtures | multiline spans stay on the first line; columns count UTF-16 units |
-| R-7.1.2 | M1 | diagnostics module; frontend complete expected objects; 36 rejection fixtures | multiline spans stay on the first line; columns count UTF-16 units |
-| R-7.1.3 | M1 | diagnostics module; frontend complete expected objects; 36 rejection fixtures | multiline spans stay on the first line; columns count UTF-16 units |
-| R-7.1.4 | M1 | diagnostics module; frontend complete expected objects; 36 rejection fixtures | multiline spans stay on the first line; columns count UTF-16 units |
+| R-7.1.1 | M1 | diagnostics module; frontend complete expected objects; 63 rejection fixtures | multiline spans stay on the first line; columns count UTF-16 units |
+| R-7.1.2 | M1 | diagnostics module; frontend complete expected objects; 63 rejection fixtures | multiline spans stay on the first line; columns count UTF-16 units |
+| R-7.1.3 | M1 | diagnostics module; frontend complete expected objects; 63 rejection fixtures | multiline spans stay on the first line; columns count UTF-16 units |
+| R-7.1.4 | M1 | diagnostics module; frontend complete expected objects; 63 rejection fixtures | multiline spans stay on the first line; columns count UTF-16 units |
 | R-7.2.1 | Preserved | conformance suite; both original fixtures unchanged and first-pass routing retained | — |
 | R-7.2.2 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 family tests and source-cited fixtures included |
-| R-7.2.3 | M1 | rejections suite: 36 byte-checked diagnostic arrays and empty output | — |
+| R-7.2.3 | M1 | rejections suite: 63 byte-checked diagnostic arrays and empty output | — |
 | R-7.2.4 | M2–M3 | conversion, m3 family/ground, verification and conformance suites | kind, alias, polarity, invert, label, ground and verification mutants |
 | R-7.2.5 | Preserved | conformance suite; both original fixtures unchanged and first-pass routing retained | — |
 | R-8.1.1 | Enforced | Vitest recursive include and 100% per-file thresholds on all axes | — |
@@ -101,7 +101,7 @@ The audit explains design decisions and the implementation sequence. All origina
 | R-8.4.4 | M2–M3 | conversion, m3 family/ground, verification and conformance suites | kind, alias, polarity, invert, label, ground and verification mutants |
 | R-8.5.1 | M1 | Measured M0→M1 size; documented 5 KiB gzip/brotli gates in size script | — |
 | R-8.5.2 | M1 | Measured M0→M1 size; documented 5 KiB gzip/brotli gates in size script | — |
-| R-8.5.3 | Below ceiling; not release-ready | M1 below 12 KiB gzip; no claim about future M2/M3 size | — |
+| R-8.5.3 | Below ceiling; not release-ready | M3 full entry 9458 B gzip / 8530 B brotli-11 against the 12288 B ceiling; M4 size review pending | — |
 | R-8.6.1 | Enforced | packaging recursive inventory, disjoint classifications, exports; smoke JS/d.ts existence | — |
 | R-8.6.2 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 family tests and source-cited fixtures included |
 | R-9.1 | Review required | Work on feature branch and PR to user fork; no main changes or merges | — |

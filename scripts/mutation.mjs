@@ -235,9 +235,16 @@ const mutants = [
 	{
 		name: 'cycle closes the current subpath',
 		file: 'src/coordinates.ts',
-		from: 'if (element.kind === \'move\') first = point;',
-		to: 'if (element === statement.elements[0]) first = point;',
+		from: 'if (element.kind === \'move\') { first = point;',
+		to: 'if (element === statement.elements[0]) { first = point;',
 		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'cycle after to[...] is rejected',
+		file: 'src/coordinates.ts',
+		from: "else if (element.operation === 'to') afterTo = true;",
+		to: "else if (element.operation === 'to') afterTo = false;",
+		tests: ['tests/frontend.test.ts', 'tests/rejections.test.ts']
 	},
 	{
 		name: 'recovery stops at the next statement command',

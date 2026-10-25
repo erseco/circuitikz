@@ -1,5 +1,5 @@
 import type { Coordinate, Point, ResolvedSegment, Span, SyntaxTree, Token } from './ast.js';
-import { Diagnostics, overflow, precision, reference, syntax, unsupported } from './diagnostics.js';
+import { Diagnostics, cycleAfterTo, overflow, precision, reference, syntax, unsupported } from './diagnostics.js';
 import { textOf, through } from './lexer.js';
 import { SCALE } from './limits.js';
 
@@ -100,6 +100,7 @@ export function resolveCoordinates(tree: SyntaxTree, diagnostics: Diagnostics): 
 			continue;
 		}
 		let currentSpan = statement.span;
+		let afterTo = false;
 		for (const element of statement.elements) {
 			if (element.kind === 'ground') {
 				if (current !== undefined) segments.push({ from: current, to: current, fromSpan: currentSpan, toSpan: currentSpan, operation: 'ground', keys: element.keys, span: element.span });
@@ -109,9 +110,14 @@ export function resolveCoordinates(tree: SyntaxTree, diagnostics: Diagnostics): 
 				if (current !== undefined) define(element.name, current, element.span);
 				continue;
 			}
-			const point = resolve(element.at, base, first);
 			// TikZ closes `cycle` to the start of the current subpath, i.e. the last move-to.
-			if (element.kind === 'move') first = point;
+			// Each to[...] restarts the subpath inside its own drawing, so cycle after one
+			// has no circuit vertex to close to.
+			let point: Point | undefined;
+			if (element.at.kind === 'cycle' && afterTo) cycleAfterTo(diagnostics, element.at.span);
+			else point = resolve(element.at, base, first);
+			if (element.kind === 'move') { first = point; afterTo = false; }
+			else if (element.operation === 'to') afterTo = true;
 			if (element.kind === 'segment' && current !== undefined && point !== undefined) {
 				segments.push({ fromSpan: currentSpan, toSpan: element.at.span, from: current, to: point, operation: element.operation, keys: element.keys, span: element.span });
 			}
