@@ -79,7 +79,8 @@ connections are not validated by the M1 front end.
 
 Coordinates support absolute `(x,y)` and `(xcm,ycm)`, relative `+(dx,dy)` and `++(dx,dy)`, references
 to earlier named coordinates, inline `coordinate (name)`, and `cycle` as a segment destination, closing the current subpath (back to the last move-to), as
-TikZ does. Empty option entries such as `[]` or `[R,]` are ignored, as pgfkeys does.
+TikZ does. `cycle` after a `to[...]` in the same subpath is rejected: CircuiTikZ closes it inside
+that component's drawing, so there is no circuit point to connect. Empty option entries such as `[]` or `[R,]` are ignored, as pgfkeys does.
 Names are literal TikZ names: numbers, spaces, hyphens and Unicode work; anchors, calculations,
 macros and coordinate-system punctuation do not. Repeated definitions and undefined references
 produce `reference` errors.
@@ -123,7 +124,7 @@ and brace nesting depth 32. A limit is inclusive. Junction construction and its 
 
 Each diagnostic contains its complete message, code, severity, one-based `line`, `column`, and
 exclusive `endColumn` on that line. Sorting is stable by line and column. Presentation keys alone
-may produce warnings. The 36 rejection fixtures pin full messages and positions.
+may produce warnings. The 37 rejection fixtures pin full messages and positions.
 
 ## Compatibility and verification
 

@@ -71,11 +71,12 @@ the unchanged lockfile; CI runs the same gates on Node 24. Every mandatory comma
 
 | Measure | Result |
 | --- | --- |
-| Tests | 174 passed, 7 suites |
-| Mutants | 47/47 killed |
-| Coverage (stmts / branches / funcs / lines) | 462/462, 357/357, 61/61, 331/331, 100% per file |
-| Size | 11890 B minified, 4431 B gzip, 3954 B brotli-11 (5 KiB gates unchanged) |
+| Tests | 176 passed, 7 suites |
+| Mutants | 48/48 killed |
+| Coverage (stmts / branches / funcs / lines) | 469/469, 363/363, 62/62, 335/335, 100% per file |
+| Size | 12137 B minified, 4528 B gzip, 4038 B brotli-11 (5 KiB gates unchanged) |
 
-Changes: `cycle` closes the current subpath; a missing `;` before the next statement no longer
+Changes: `cycle` closes the current subpath, and is rejected after a `to[...]` in that subpath, because
+CircuiTikZ closes it inside the component's drawing; a missing `;` before the next statement no longer
 swallows that statement during recovery; empty option entries are ignored. The `empty-option`
-rejection fixture is replaced by `missing-semicolon-recovery`, so the corpus stays at 36 cases.
+rejection fixture is replaced by `missing-semicolon-recovery`, so the corpus stays at 36 cases; `cycle-after-component` then makes it 37.

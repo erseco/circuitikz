@@ -112,20 +112,33 @@ describe('span-aware parser and resolver', () => {
 		}
 	});
 	it('keeps AST operations, names, options and exact coordinates', () => {
-		const result = read(wrap('\\coordinate (A) at (1cm,-2.50cm);\n\\draw[thick] (A) coordinate (B) to[R=$R_{1}$,l={a,b}] ++(2,0) |- +(0,1) -| (A) -- cycle;'));
+		const result = read(wrap('\\coordinate (A) at (1cm,-2.50cm);\n\\draw[thick] (A) coordinate (B) to[R=$R_{1}$,l={a,b}] ++(2,0) |- +(0,1) -| (A);'));
 		expect(result.diagnostics).toEqual([]);
 		expect(result.tree?.statements.map((s) => s.kind)).toEqual(['coordinate', 'draw']);
 		expect(result.tree?.statements[1]).toMatchObject({ keys: [{ name: 'thick', value: undefined }], elements: [
 			{ kind: 'move', at: { kind: 'reference', name: 'A' } }, { kind: 'name', name: 'B' },
 			{ kind: 'segment', operation: 'to', keys: [{ name: 'R' }, { name: 'l' }], at: { x: 200, y: 0, mode: '++' } },
-			{ kind: 'segment', operation: '|-' }, { kind: 'segment', operation: '-|' }, { kind: 'segment', operation: '--', at: { kind: 'cycle' } }
+			{ kind: 'segment', operation: '|-' }, { kind: 'segment', operation: '-|' }
 		] });
 		expect(result.segments.map(({ from, to }) => [from, to])).toEqual([
 			[{ x: 100, y: -250 }, { x: 300, y: -250 }],
 			[{ x: 300, y: -250 }, { x: 300, y: -150 }],
-			[{ x: 300, y: -150 }, { x: 100, y: -250 }],
-			[{ x: 100, y: -250 }, { x: 100, y: -250 }]
+			[{ x: 300, y: -150 }, { x: 100, y: -250 }]
 		]);
+	});
+
+	it('rejects cycle after to[...], which CircuiTikZ closes inside the component drawing', () => {
+		const message = 'cycle after to[...] closes inside that component\'s drawing in CircuiTikZ; end the path at an explicit coordinate instead.';
+		for (const operation of ['to[R]', 'to[short]']) {
+			const result = read(wrap(`\\draw (0,0) ${operation} (2,0) -- (2,2) -- cycle;`));
+			expect(result.tree?.statements[0]).toMatchObject({ elements: [{}, {}, {}, { kind: 'segment', operation: '--', at: { kind: 'cycle' } }] });
+			expect(result.diagnostics).toEqual([{ code: 'unsupported', severity: 'error', message, line: 2, column: 32 + operation.length, endColumn: 37 + operation.length }]);
+			expect(result.segments).toHaveLength(2);
+		}
+		// A move-to starts a fresh subpath of wires, which cycle closes exactly.
+		const fresh = read(wrap('\\draw (0,0) to[R] (2,0) (2,1) -- (2,2) -- (0,2) -- cycle;'));
+		expect(fresh.diagnostics).toEqual([]);
+		expect(fresh.segments.at(-1)).toMatchObject({ from: { x: 0, y: 200 }, to: { x: 200, y: 100 } });
 	});
 
 	it('distinguishes + from ++ and moves the pen to both', () => {

@@ -40,7 +40,7 @@ The audit explains design decisions and the implementation sequence. All origina
 | R-4.2.1 | M1 | frontend AST and missing delimiters; rejection fixtures for each parser message | statement budget is inclusive |
 | R-4.2.2 | M1 | frontend unsupported/nested statements; unknown-statement rejection | independent errors are retained |
 | R-4.2.3 | M1 | frontend: multiple statement problems; recovery rejection including semicolon in braces; missing-semicolon-recovery resynchronises at the next statement | recovery ignores semicolons in braces; recovery stops at the environment end; recovery stops at the next statement command |
-| R-4.3.1 | M1 | frontend exact coordinates, names, cycle, numeric forms and overflow; rejection corpus | coordinate precision is never rounded; fractional coordinate overflow is rejected; cycle closes the current subpath |
+| R-4.3.1 | M1 | frontend exact coordinates, names, cycle, numeric forms and overflow; rejection corpus | coordinate precision is never rounded; fractional coordinate overflow is rejected; cycle closes the current subpath; cycle after to[...] is rejected |
 | R-4.3.2 | M1 parse only | frontend AST operations; corner graph expansion deferred M2 | component option order and word boundaries survive |
 | R-4.3.3 | M1 | frontend undefined/duplicate and independent missing names; corresponding rejections | duplicate names are diagnosed |
 | R-4.3.4 | M1 | frontend: + versus ++, actual pen endpoints and reference state | plus leaves the relative reference unchanged; relative increments use their reference |
@@ -75,13 +75,13 @@ The audit explains design decisions and the implementation sequence. All origina
 | R-6.2 | Blocked M2 design | topology: real core open-terminal discrepancy; decision A in audit | Expected singleton nets are not dropped or fabricated |
 | R-6.3 | Blocked M2 design | topology: real core open-terminal discrepancy; decision A in audit | Expected singleton nets are not dropped or fabricated |
 | R-6.4 | Deferred M2 | No compile/oracle pipeline and no internal diagnostics in M1 | — |
-| R-7.1.1 | M1 | diagnostics module; frontend complete expected objects; 36 rejection fixtures | multiline spans stay on the first line; columns count UTF-16 units |
-| R-7.1.2 | M1 | diagnostics module; frontend complete expected objects; 36 rejection fixtures | multiline spans stay on the first line; columns count UTF-16 units |
-| R-7.1.3 | M1 | diagnostics module; frontend complete expected objects; 36 rejection fixtures | multiline spans stay on the first line; columns count UTF-16 units |
-| R-7.1.4 | M1 | diagnostics module; frontend complete expected objects; 36 rejection fixtures | multiline spans stay on the first line; columns count UTF-16 units |
+| R-7.1.1 | M1 | diagnostics module; frontend complete expected objects; 37 rejection fixtures | multiline spans stay on the first line; columns count UTF-16 units |
+| R-7.1.2 | M1 | diagnostics module; frontend complete expected objects; 37 rejection fixtures | multiline spans stay on the first line; columns count UTF-16 units |
+| R-7.1.3 | M1 | diagnostics module; frontend complete expected objects; 37 rejection fixtures | multiline spans stay on the first line; columns count UTF-16 units |
+| R-7.1.4 | M1 | diagnostics module; frontend complete expected objects; 37 rejection fixtures | multiline spans stay on the first line; columns count UTF-16 units |
 | R-7.2.1 | Preserved | conformance suite; both original fixtures unchanged and first-pass routing retained | — |
 | R-7.2.2 | Deferred M2/M3 | No successful converter result or new emitted fixture claimed | — |
-| R-7.2.3 | M1 | rejections suite: 36 byte-checked diagnostic arrays and empty output | — |
+| R-7.2.3 | M1 | rejections suite: 37 byte-checked diagnostic arrays and empty output | — |
 | R-7.2.4 | Deferred M2/M3 | No successful converter result or new emitted fixture claimed | — |
 | R-7.2.5 | Preserved | conformance suite; both original fixtures unchanged and first-pass routing retained | — |
 | R-8.1.1 | Enforced | Vitest recursive include and 100% per-file thresholds on all axes | — |
