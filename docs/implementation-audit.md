@@ -139,6 +139,10 @@ TypeScript 7.0.2 API. CI's `bun-version-file: package.json` was verified against
 
 ## Decisions before M2
 
+**Settled.** All of these were answered in schemd/circuitikz#2 and written into REQUIREMENTS.md by
+schemd/circuitikz#3 (R-4.2.3, R-4.3.1, R-4.4.5, R-4.5.4, R-5.1.3, R-5.1.6, R-5.1.8, R-6.2, R-8.5.4).
+The original proposals are kept below as the record of what was asked.
+
 These are proposals for maintainer review, **not implemented assumptions**. REQUIREMENTS §9.3
 requires design to be settled in an issue before code depends on it. No issue/comment was posted;
 the user authorized a PR to their fork, not upstream discussion or a contract change.

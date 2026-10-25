@@ -59,7 +59,7 @@ they are not yet produced by this converter. Real-browser integration and succes
 remain M2 work. The browser/worker compatibility check is a browser-target VM smoke, not a browser run.
 
 The initial audit, implementation sequence and unresolved maintainer decisions are in
-[implementation-audit.md](./implementation-audit.md). All 103 R-* requirements, including deferred
+[implementation-audit.md](./implementation-audit.md). All 106 R-* requirements, including deferred
 and blocked ones, are mapped in [requirements-traceability.md](./requirements-traceability.md).
 
 ## Review follow-up

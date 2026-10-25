@@ -48,6 +48,7 @@ The audit explains design decisions and the implementation sequence. All origina
 | R-4.4.2 | Deferred M2/M3 | Component options retained structurally; no semantic acceptance or emitted components | Source review in implementation-audit; semantic mutants required in implementing PR |
 | R-4.4.3 | Deferred M2/M3 | Component options retained structurally; no semantic acceptance or emitted components | Source review in implementation-audit; semantic mutants required in implementing PR |
 | R-4.4.4 | Deferred M2/M3 | Component options retained structurally; no semantic acceptance or emitted components | Source review in implementation-audit; semantic mutants required in implementing PR |
+| R-4.4.5 | M1 partial | frontend: empty option entries ignored; kind/label conflicts and repeated invert are M2 semantics | empty option entries are ignored |
 | R-4.5.1 | Deferred M2/M3 | Component options retained structurally; no semantic acceptance or emitted components | Source review in implementation-audit; semantic mutants required in implementing PR |
 | R-4.5.2 | Deferred M2/M3 | Component options retained structurally; no semantic acceptance or emitted components | Source review in implementation-audit; semantic mutants required in implementing PR |
 | R-4.5.3 | Deferred M2/M3 | Component options retained structurally; no semantic acceptance or emitted components | Source review in implementation-audit; semantic mutants required in implementing PR |
@@ -59,6 +60,7 @@ The audit explains design decisions and the implementation sequence. All origina
 | R-5.1.5 | Deferred M2 | No graph/emitter yet; existing expected conformance documents preserved | — |
 | R-5.1.6 | Deferred M2 | No graph/emitter yet; existing expected conformance documents preserved | — |
 | R-5.1.7 | Deferred M2 | No graph/emitter yet; existing expected conformance documents preserved | — |
+| R-5.1.8 | Deferred M2 | No graph yet | — |
 | R-5.2.1 | Deferred M2 | No graph/emitter yet; existing expected conformance documents preserved | — |
 | R-5.2.2 | Deferred M2 | No graph/emitter yet; existing expected conformance documents preserved | — |
 | R-5.2.3 | Deferred M2 | No graph/emitter yet; existing expected conformance documents preserved | — |
@@ -102,11 +104,12 @@ The audit explains design decisions and the implementation sequence. All origina
 | R-8.5.1 | M1 | Measured M0→M1 size; documented 5 KiB gzip/brotli gates in size script | — |
 | R-8.5.2 | M1 | Measured M0→M1 size; documented 5 KiB gzip/brotli gates in size script | — |
 | R-8.5.3 | Below ceiling; not release-ready | M1 below 12 KiB gzip; no claim about future M2/M3 size | — |
+| R-8.5.4 | M1 | size script: 5 KiB gzip and brotli gates with measured comment | — |
 | R-8.6.1 | Enforced | packaging recursive inventory, disjoint classifications, exports; smoke JS/d.ts existence | — |
 | R-8.6.2 | M1 | CI npm pack dry-run; Node 24 built converter/oracle smoke; successful conversion deferred M2 | — |
 | R-9.1 | Review required | Work on feature branch and PR to user fork; no main changes or merges | — |
 | R-9.2 | Review required | Work on feature branch and PR to user fork; no main changes or merges | — |
-| R-9.3 | Design blocked as required | Audit records proposals; no implementation depends on changing the contract | — |
+| R-9.3 | Settled | Design questions answered in schemd/circuitikz#2 and written into REQUIREMENTS.md by schemd/circuitikz#3 | — |
 | R-9.4 | M1 | CHANGELOG observable M1 behavior and infrastructure changes | — |
 | R-9.5 | M1 | Lower-case present-tense commit messages | — |
 | R-9.6 | Preserved | No version changes, tags, publication or deployment | — |
