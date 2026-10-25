@@ -191,7 +191,8 @@ names it. That includes `\node`, `\path`, `\fill`, `\filldraw`, `\foreach`, `\de
 
 **R-4.2.3** **Error recovery**: after an error inside a statement, the parser skips to the next `;`
 at brace depth 0, or to `\end{circuitikz}`, and continues. One malformed statement never hides a
-problem in another.
+problem in another. A `\draw` or `\coordinate` met while skipping also ends the skip, so a missing
+`;` does not swallow the statement after it ([#2](https://github.com/schemd/circuitikz/issues/2) §8).
 
 ### 4.3 Paths
 
@@ -205,7 +206,8 @@ problem in another.
 | `+(dx,dy)` | Relative to the current point, and leaves it where it was | M2 |
 | `(name)` | A named coordinate defined earlier | M2 |
 | `coordinate (name)` inside a path | Names the current point | M2 |
-| `cycle` | The first point of the current path | M2 |
+| `cycle` after wires only | The start of the current subpath: the last move-to (#2 §7) | M2 |
+| `cycle` after a `to[...]` in the same subpath, `to[short]` included | — | `unsupported`; the message asks for an explicit end coordinate (#2 §7) |
 | `(a,b)` with units other than none or `cm`, polar `(30:2)`, `(A.north)`, `(A \|- B)`, `($…$)` | — | `unsupported` |
 
 Numbers are decimal: optional sign, digits, optional fraction, no exponent. They are parsed
@@ -240,7 +242,8 @@ fixture pins it.
 | `battery`, `battery2` | `source [type=battery]` | to be established from the source, per row | M3 |
 | `D`, `diode`, `empty diode`, `full diode` | `diode` | `anode` → `cathode` | M3 |
 | `zD`, `leD` | `diode [type=zener]`, `diode [type=led]` | `anode` → `cathode` | M3 |
-| `nos`, `ospst`, `ncs`, `cspst` | `switch [type=spst]` | `in` → `out` | M3 |
+| `nos`, `ospst` | `switch [type=spst]` | `in` → `out` | M3 |
+| `ncs`, `cspst` | — | — | `unsupported` until `@schemd/core` draws a closed switch (#2 §4) |
 | `short` | a wire | — | M2 |
 | `node[ground]{}` at a point | `ground` | `in` at the point | M3 |
 
@@ -264,10 +267,22 @@ first settle CircuiTikZ's voltage-direction conventions (`voltage dir`, `EFvolta
 environment sets `fixbatteries`, which moves it to the end (circuitikz `tex/pgfcircbipoles.tex`,
 shape "Battery 1"). `invert` swaps it again. All four combinations have fixtures.
 
+`@schemd/core` 1.1 draws its battery glyph with the long plate on the `negative` terminal's side, so
+a correct conversion is drawn mirrored until core fixes the glyph. The converter keeps the semantic
+ports and never swaps terminals to make the picture match: R-6 checks connectivity, and the drawing is
+core's to fix (#2 §3).
+
 **R-4.4.4** A component on a segment that is neither horizontal nor vertical is a `geometry` error
 that gives both endpoints. A component on a zero-length segment is a `geometry` error. A component
 whose segment is too short for the schemd part, at the scale in R-5.3.1, is a `geometry` error that
 gives the shortest length that fits.
+
+**R-4.4.5** Option lists (#2 §8):
+- A second kind or a second label in one list (`to[R, C]`, `to[R=1, l=2]`) is a `syntax` error at
+  the second key. There is no precedence rule.
+- `invert` written more than once is the same as written once. CircuiTikZ's key sets a flag; it
+  does not toggle.
+- Empty entries (`[]`, `[R,]`, `[,thick]`) are ignored, as pgfkeys ignores them.
 
 ### 4.5 Labels
 
@@ -282,7 +297,10 @@ converter never passes through a sequence that schemd would print literally.
 **R-4.5.3** Text-mode labels may contain letters, digits, spaces and `. , - + / ( ) : '`. Any other
 character, `{`/`}` grouping included, is an `unsupported` error naming the character.
 
-**R-4.5.4** A part with no label is labelled with its schemd ID (R-5.3.3).
+**R-4.5.4** A part with no label is labelled with its schemd ID (R-5.3.3), so the ID is drawn twice.
+Once `@schemd/core` 1.2.0 is published with optional labels
+([schemd/core#9](https://github.com/schemd/core/pull/9)), the peer range moves to `^1.2.0` and a part
+with no label is emitted with no label, so only its designator is drawn (#2 §2).
 
 ---
 
@@ -301,7 +319,8 @@ A component's two terminals are its two endpoints.
 equal. There is no tolerance.
 
 **R-5.1.3** **Nets** are the connected components of the graph's wire edges. Every component
-terminal lies on exactly one net.
+terminal lies on exactly one net. A terminal that nothing reaches is a net of its own, on both sides
+of the oracle (R-6.2), so an open terminal is compared and never dropped (#2 §1).
 
 **R-5.1.4** A **junction** is emitted at each vertex where three or more edge ends meet. A vertex
 with two edge ends is a corner, or two components meeting directly, and emits nothing. schemd's
@@ -312,11 +331,20 @@ edge declared last on each cycle is dropped. Connectivity is unchanged, so this 
 and a test pins it.
 
 **R-5.1.6** A wire that touches no component terminal and no junction is an `unsupported` error
-("a wire connected to nothing").
+("a wire connected to nothing"). So is a wire chain that ends at a vertex with a single edge end, a
+stub hanging off a terminal, because a schemd connection runs from terminal to terminal and the stub
+would vanish. Dead ends are found on the graph before R-5.1.5 drops any cycle edge, so a dropped
+edge never creates one (#2 §6).
 
 **R-5.1.7** Two segments that overlap along their length, rather than meeting at a vertex, are a
 `geometry` error. CircuiTikZ draws them on top of each other, and the intended connectivity is
 ambiguous.
+
+**R-5.1.8** A segment endpoint that lies inside another segment, and is not one of its vertices, is a
+`geometry` error. CircuiTikZ draws a T there, but R-5.1.2 joins only equal points, so the converter
+would otherwise leave the part unconnected. The message tells the author to split the segment at that
+point, which makes a real vertex and, by R-5.1.4, a junction. The converter never splits it itself,
+because that would create a connection from geometry (#2 §5).
 
 ### 5.2 Connections
 
@@ -376,6 +404,9 @@ cannot change topology.
 schemd text exists. It uses the same canonical form as `connectivityOf`.
 
 **R-6.2** **Emitted connectivity** is `connectivityOf(buildNetlist(compileSchematic(source, fence).document))`.
+`buildNetlist` builds nets only from connections, so `connectivityOf` completes them from each node's
+port inventory: every port of a non-junction part that is on no net becomes a net of its own (R-5.1.3).
+This changes the M0 behaviour of an exported function and needs a `Changed` entry (#2 §1).
 
 **R-6.3** Before returning an `ok` result, the converter runs `diagnoseSchematic` and compiles the
 document, then compares the two connectivities with `connectivityDifference`. Any diagnostic, throw
@@ -504,6 +535,14 @@ in `scripts/check-bundle-size.mjs` saying what was added and how many bytes it m
 
 **R-8.5.3** The 0.1.0 release fits in **12 KiB gzip**.
 
+**R-8.5.4** The milestone budgets, each raised by the pull request that needs it (#2 §9):
+
+| Milestone | gzip | brotli-11 |
+| --- | --- | --- |
+| M1 | 5 KiB | 5 KiB |
+| M2 | 9 KiB | 9 KiB |
+| M3 | 9.5 KiB | 9 KiB |
+
 ### 8.6 Packaging and runtime
 
 **R-8.6.1** `tests/packaging.test.ts` holds. Every `src` module is either an `exports` subpath or
@@ -591,9 +630,8 @@ Each milestone closes when its acceptance list is green on `main`.
 
 Each one is settled in an issue before the milestone that needs it.
 
-1. **Unlabelled parts.** R-4.5.4 labels them with their ID, so the ID is drawn twice. Settle before
-   M2 whether that is acceptable, or whether `@schemd/core` should accept an unlabelled
-   declaration.
+1. ~~**Unlabelled parts.**~~ Settled in #2 §2: `@schemd/core` 1.2.0 accepts an unlabelled
+   declaration (R-4.5.4).
 2. **`name=`/`n=` as IDs.** CircuiTikZ lets an author name a component. Using that name as the schemd
    ID would be friendlier, but it creates collisions with R-5.3.3. Rejected until settled.
 3. **Document extraction.** Educational material is usually whole `.tex` files. A separate
