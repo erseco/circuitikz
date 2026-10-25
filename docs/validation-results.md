@@ -61,3 +61,21 @@ remain M2 work. The browser/worker compatibility check is a browser-target VM sm
 The initial audit, implementation sequence and unresolved maintainer decisions are in
 [implementation-audit.md](./implementation-audit.md). All 103 R-* requirements, including deferred
 and blocked ones, are mapped in [requirements-traceability.md](./requirements-traceability.md).
+
+## Review follow-up
+
+Rerun on 2026-10-25 after the code-review fixes, locally with **Node.js 26.12.1** and Bun 1.4.4 and
+the unchanged lockfile; CI runs the same gates on Node 24. Every mandatory command passed again:
+`bun ci`, `check`, `test`, `test:coverage`, `test:mutation`, `test:fuzz:contract` (seed 6049357,
+20000 cases / 40000 conversions), `build`, `size`, `release:check`, `npm pack --dry-run`, `test:smoke`.
+
+| Measure | Result |
+| --- | --- |
+| Tests | 174 passed, 7 suites |
+| Mutants | 47/47 killed |
+| Coverage (stmts / branches / funcs / lines) | 462/462, 357/357, 61/61, 331/331, 100% per file |
+| Size | 11890 B minified, 4431 B gzip, 3954 B brotli-11 (5 KiB gates unchanged) |
+
+Changes: `cycle` closes the current subpath; a missing `;` before the next statement no longer
+swallows that statement during recovery; empty option entries are ignored. The `empty-option`
+rejection fixture is replaced by `missing-semicolon-recovery`, so the corpus stays at 36 cases.
