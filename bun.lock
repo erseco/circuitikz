@@ -5,14 +5,14 @@
     "": {
       "name": "@schemd/circuitikz",
       "devDependencies": {
-        "@schemd/core": "^1.1.0",
+        "@schemd/core": "^1.2.0",
         "@vitest/coverage-v8": "^5.0.5",
         "typescript": "^7.0.2",
         "vite": "^8.3.4",
         "vitest": "^5.0.5",
       },
       "peerDependencies": {
-        "@schemd/core": "^1.1.0",
+        "@schemd/core": "^1.2.0",
       },
     },
   },
@@ -67,7 +67,7 @@
 
     "@rolldown/pluginutils": ["@rolldown/pluginutils@1.0.1", "", {}, "sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw=="],
 
-    "@schemd/core": ["@schemd/core@1.1.0", "", {}, "sha512-PKU52e6IF0ez/30AUS6cePSbqJwFAyqsgUSRlo+t94EnFOzLuy4JNyEXszjSuCi/Jbi/e1hEz5znX6aq3MwFwg=="],
+    "@schemd/core": ["@schemd/core@1.2.0", "", {}, "sha512-5wFOYlvKVu+Zfc55kwibOEQ5UYTdGRhPE58bltctcVzgUM0YdXu+QTqU1FRCivckQXK/dQA2Oc8ubvxMUq2TEQ=="],
 
     "@types/chai": ["@types/chai@5.2.3", "", { "dependencies": { "@types/deep-eql": "*", "assertion-error": "^2.0.1" } }, "sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA=="],
 

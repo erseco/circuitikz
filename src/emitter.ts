@@ -30,11 +30,11 @@ export function emit(circuit: Circuit, title: string): Emission {
 	for (const part of circuit.parts) {
 		const p = placement(circuit, part.from, part.to, part.first !== part.spec.canonical);
 		const options = [part.spec.variant === '' ? '' : `${part.spec.kind === 'ground' ? 'style' : 'type'}=${part.spec.variant}`, p.orientation === 'right' ? '' : `orientation=${p.orientation}`].filter((v) => v !== '');
-		add(`${part.spec.kind}:${part.id} "${part.spec.label ?? part.id}" at (${p.x}, ${p.y}) #${part.spec.color}${options.length === 0 ? '' : ` [${options.join(' ')}]`}`, part.span);
+		add(`${part.spec.kind}:${part.id}${part.spec.label === undefined ? '' : ` "${part.spec.label}"`} at (${p.x}, ${p.y}) #${part.spec.color}${options.length === 0 ? '' : ` [${options.join(' ')}]`}`, part.span);
 	}
 	for (const junction of circuit.junctions) {
 		const v = canvas(circuit, circuit.vertices[junction.vertex]!);
-		add(`junction:${junction.id} "${junction.id}" at (${v.x}, ${v.y}) #slate`, junction.span);
+		add(`junction:${junction.id} at (${v.x}, ${v.y}) #slate`, junction.span);
 	}
 	if (circuit.connections.length > 0) lines.push('');
 	for (const edge of circuit.connections) add(`${edge.from} -> ${edge.to} #${edge.color} [ortho]`, edge.span);

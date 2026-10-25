@@ -1,9 +1,8 @@
 # M2 design and review record
 
-M2 is implemented on a branch stacked on M1, at the user's explicit request. These are concrete
-reviewable design choices in the fork, **not a claim of prior upstream maintainer agreement**.
-REQUIREMENTS.md and public type interfaces remain unchanged. Upstream design approval remains a
-review item before these proposals are merged upstream.
+M2 is implemented on a branch stacked on M1. The design choices below were proposed in
+schemd/circuitikz#2 and accepted there; schemd/circuitikz#3 wrote them into REQUIREMENTS.md
+(R-4.3.1, R-4.4.5, R-4.5.4, R-5.1.3, R-5.1.6, R-5.1.8, R-6.2). Public type interfaces are unchanged.
 
 - **Open terminals:** `connectivityOf` completes missing non-junction ports from `netlist.nodes` as
   singleton nets. The input graph retains every terminal, so R-5.1.3 and the literal R-6.2 expression
@@ -21,7 +20,7 @@ review item before these proposals are merged upstream.
   branch and are removed before degree calculation. Original nondegenerate degrees determine junctions
   before cycle pruning. Collinear primitive-integer direction groups plus interval sweeps detect overlaps;
   geometric intersections never add vertices. Corners contract without synthetic junctions.
-  Proposal: an endpoint strictly inside another collinear-direction segment is a `geometry` error
+  Settled (R-5.1.8, R-5.1.6): an endpoint strictly inside another collinear-direction segment is a `geometry` error
   (R-5.1.7's spirit: ambiguous intended connectivity), and a wire chain that ends at a vertex with
   one edge end is `unsupported` (extends R-5.1.6: schemd cannot draw it, so it is not dropped silently).
 - **Connections:** contract a separate terminal/junction forest; wire-bearing paths use the earliest

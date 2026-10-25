@@ -48,6 +48,7 @@ The audit explains design decisions and the implementation sequence. All origina
 | R-4.4.2 | M2–M3 | conversion, m3 family/ground, verification and conformance suites | kind, alias, polarity, invert, label, ground and verification mutants |
 | R-4.4.3 | M2–M3 | conversion, m3 family/ground, verification and conformance suites | kind, alias, polarity, invert, label, ground and verification mutants |
 | R-4.4.4 | M2–M3 | conversion, m3 family/ground, verification and conformance suites | kind, alias, polarity, invert, label, ground and verification mutants |
+| R-4.4.5 | M2–M3 | frontend empty entries; conversion and m3 conflicting kinds/labels and repeated invert on every polar family | empty option entries are ignored; duplicate labels are not silently selected |
 | R-4.5.1 | M2–M3 | conversion, m3 family/ground, verification and conformance suites | kind, alias, polarity, invert, label, ground and verification mutants |
 | R-4.5.2 | M2–M3 | conversion, m3 family/ground, verification and conformance suites | kind, alias, polarity, invert, label, ground and verification mutants |
 | R-4.5.3 | M2–M3 | conversion, m3 family/ground, verification and conformance suites | kind, alias, polarity, invert, label, ground and verification mutants |
@@ -59,6 +60,7 @@ The audit explains design decisions and the implementation sequence. All origina
 | R-5.1.5 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 family tests and source-cited fixtures included |
 | R-5.1.6 | M2 | conversion dead-end tests; wire-orphan and wire-dead-end rejections | dead-end wires are rejected; dead-end wires are rejected only at single edge ends |
 | R-5.1.7 | M2 | conversion T-junction test; segments-overlap and t-junction rejections | positive-length overlaps are rejected; an endpoint inside another segment is a geometry error; overlaps suppress duplicate interior diagnostics |
+| R-5.1.8 | M2 | conversion T-junction test; t-junction rejection | an endpoint inside another segment is a geometry error |
 | R-5.2.1 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 family tests and source-cited fixtures included |
 | R-5.2.2 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 family tests and source-cited fixtures included |
 | R-5.2.3 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 family tests and source-cited fixtures included |
@@ -102,11 +104,12 @@ The audit explains design decisions and the implementation sequence. All origina
 | R-8.5.1 | M1 | Measured M0→M1 size; documented 5 KiB gzip/brotli gates in size script | — |
 | R-8.5.2 | M1 | Measured M0→M1 size; documented 5 KiB gzip/brotli gates in size script | — |
 | R-8.5.3 | Below ceiling; not release-ready | M3 full entry 9458 B gzip / 8530 B brotli-11 against the 12288 B ceiling; M4 size review pending | — |
+| R-8.5.4 | M3 | size script: 9.5 KiB gzip / 9 KiB brotli gates with measured comment | — |
 | R-8.6.1 | Enforced | packaging recursive inventory, disjoint classifications, exports; smoke JS/d.ts existence | — |
 | R-8.6.2 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 family tests and source-cited fixtures included |
 | R-9.1 | Review required | Work on feature branch and PR to user fork; no main changes or merges | — |
 | R-9.2 | Review required | Work on feature branch and PR to user fork; no main changes or merges | — |
-| R-9.3 | Draft review required | Explicit user request to implement stacked fork PRs; m2-design.md records proposals | Upstream agreement is not claimed |
+| R-9.3 | Settled | Design questions answered in schemd/circuitikz#2 and written into REQUIREMENTS.md by schemd/circuitikz#3 | — |
 | R-9.4 | M1 | CHANGELOG observable M1 behavior and infrastructure changes | — |
 | R-9.5 | M1 | Lower-case present-tense commit messages | — |
 | R-9.6 | Preserved | No version changes, tags, publication or deployment | — |

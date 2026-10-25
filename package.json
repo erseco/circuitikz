@@ -47,10 +47,10 @@
     "test:smoke": "node scripts/smoke.mjs"
   },
   "peerDependencies": {
-    "@schemd/core": "^1.1.0"
+    "@schemd/core": "^1.2.0"
   },
   "devDependencies": {
-    "@schemd/core": "^1.1.0",
+    "@schemd/core": "^1.2.0",
     "@vitest/coverage-v8": "^5.0.5",
     "typescript": "^7.0.2",
     "vite": "^8.3.4",

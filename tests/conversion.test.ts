@@ -31,7 +31,7 @@ describe('M2 conversion', () => {
 		['(0,0)', '(0,2)', 'up'], ['(0,2)', '(0,0)', 'down']
 	])('preserves orientation from %s to %s', (a, b, orientation) => {
 		const result = convert(`\\draw ${a} to[R] ${b};`);
-		expect(result.components[0]).toMatchObject({ kind: 'resistor', label: 'R1' });
+		expect(result.components[0]).toMatchObject({ kind: 'resistor', id: 'R1', label: '' });
 		expect('orientation' in result.components[0]! ? result.components[0].orientation : 'right').toBe(orientation);
 	});
 
