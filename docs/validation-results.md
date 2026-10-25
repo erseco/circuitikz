@@ -1,6 +1,6 @@
 # Local validation results
 
-Executed 2026-10-25, using **Node.js 24.22.1**, **Bun 1.4.3**, TypeScript 7.0.2 and the unchanged
+Executed 2026-10-25, using **Node.js 24.22.1**, **Bun 1.4.4**, TypeScript 7.0.2 and the unchanged
 lockfile (core 1.1.0, Vitest/V8 coverage 5.0.5, Vite 8.3.5). These are local results; GitHub Actions
 results must be read separately. Scope is the M1 front end, not a complete converter.
 

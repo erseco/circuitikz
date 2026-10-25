@@ -23,6 +23,8 @@ Written for someone deciding whether to upgrade. Sections: `Fixed`, `Added`, `Re
 
 ### Changed
 
+- Pin Bun 1.4.4 for local and CI installation.
+
 - Coverage now enforces the existing 100% requirement per file as well as recursively including src.
 - Packaging classifies nested modules; source policy also checks TypeScript syntax tokens and MJS
   tests. CI selects Bun from the existing packageManager pin; the lockfile and dependencies are unchanged.
