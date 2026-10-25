@@ -1,0 +1,10 @@
+[
+  {
+    "code": "syntax",
+    "message": "Expected a non-empty option; correct the statement before converting it.",
+    "line": 2,
+    "column": 7,
+    "endColumn": 8,
+    "severity": "error"
+  }
+]

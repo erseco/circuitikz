@@ -26,6 +26,8 @@ jobs:
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
 
       - name: Setup supported Node.js runtime
         uses: actions/setup-node@v6
@@ -50,7 +52,16 @@ jobs:
       - name: Kill every mutant
         run: bun run test:mutation
 
-      # M1 adds `bun run test:fuzz:contract` here (REQUIREMENTS.md R-8.3).
+      - name: Run 20000 reproducible fuzz cases
+        run: bun run test:fuzz:contract
+
+      - name: Preserve minimized fuzz failures
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: fuzz-failures
+          path: fuzz-failure-*.json
+          if-no-files-found: ignore
 
       - name: Build package
         run: bun run build
@@ -61,10 +72,8 @@ jobs:
       - name: Inspect package contents
         run: npm pack --dry-run
 
-      # Tests import from src; this is the only step that proves the built
-      # files load under Node.js the way a host will load them (R-8.6.2).
-      - name: Import the built package
-        run: node --input-type=module -e "const m = await import('./dist/index.js'); if (typeof m.connectivityOf !== 'function') throw new Error('dist/index.js is missing connectivityOf');"
+      - name: Exercise built ESM and browser-worker bundle
+        run: bun run test:smoke
 
       - name: Verify release tag and changelog
         if: startsWith(github.ref, 'refs/tags/v')
@@ -93,6 +102,8 @@ jobs:
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
 
       - name: Setup Node.js for npm trusted publishing
         uses: actions/setup-node@v6

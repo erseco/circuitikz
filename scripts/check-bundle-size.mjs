@@ -20,9 +20,12 @@ const BUDGETS = [
 		label: 'Package bundle (every public export, @schemd/core external)',
 		module: '../src/index.ts',
 		entry: (path) => `import * as converter from ${JSON.stringify(path)};globalThis.schemdCircuitikz=converter;`,
-		/* 1 KiB at 0.0.0: the topology oracle and nothing else. */
-		maxGzipBytes: 1 * 1024,
-		maxBrotliBytes: 1 * 1024
+		/* M1 adds a bounded scanner, span-aware parser, exact coordinate resolver,
+		   diagnostics and host validation. M0 measured 533 B gzip / 455 B brotli;
+		   M1 measured 4406 B gzip / 3942 B brotli after front-end hardening.
+		   Keep a 5 KiB gate on both axes, below R-8.5.3's 12 KiB release ceiling. */
+		maxGzipBytes: 5 * 1024,
+		maxBrotliBytes: 5 * 1024
 	}
 ];
 

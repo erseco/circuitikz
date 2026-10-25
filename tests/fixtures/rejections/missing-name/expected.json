@@ -1,0 +1,18 @@
+[
+  {
+    "code": "syntax",
+    "message": "Expected a literal coordinate name; correct the statement before converting it.",
+    "line": 1,
+    "column": 32,
+    "endColumn": 32,
+    "severity": "error"
+  },
+  {
+    "code": "syntax",
+    "message": "Expected \\end{circuitikz}; correct the statement before converting it.",
+    "line": 1,
+    "column": 32,
+    "endColumn": 32,
+    "severity": "error"
+  }
+]

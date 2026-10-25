@@ -1,0 +1,10 @@
+[
+  {
+    "code": "limit",
+    "message": "The statements limit is 1024; split the circuit into smaller environments.",
+    "line": 1026,
+    "column": 1,
+    "endColumn": 6,
+    "severity": "error"
+  }
+]
