@@ -1,0 +1,10 @@
+[
+  {
+    "code": "limit",
+    "message": "The brace nesting depth limit is 32; split the circuit into smaller environments.",
+    "line": 1,
+    "column": 33,
+    "endColumn": 34,
+    "severity": "error"
+  }
+]

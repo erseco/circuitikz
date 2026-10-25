@@ -1,0 +1,10 @@
+[
+  {
+    "code": "limit",
+    "message": "The components limit is 512; split the circuit into smaller environments.",
+    "line": 2,
+    "column": 6157,
+    "endColumn": 6159,
+    "severity": "error"
+  }
+]

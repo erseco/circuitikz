@@ -1,0 +1,10 @@
+[
+  {
+    "code": "syntax",
+    "message": "Expected a closing ] with balanced braces and math delimiters; correct the statement before converting it.",
+    "line": 3,
+    "column": 1,
+    "endColumn": 5,
+    "severity": "error"
+  }
+]
