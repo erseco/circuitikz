@@ -1,0 +1,15 @@
+{
+  "origin": "REQUIREMENTS.md R-4.3",
+  "fence": "schemd bounds=\"460x460\" title=\"Converted CircuiTikZ circuit\"",
+  "note": "Exact named/relative path semantics, degenerate corner legs and explicit return connectivity.",
+  "connectivity": [
+    [
+      "R1.in",
+      "C1.out"
+    ],
+    [
+      "R1.out",
+      "C1.in"
+    ]
+  ]
+}

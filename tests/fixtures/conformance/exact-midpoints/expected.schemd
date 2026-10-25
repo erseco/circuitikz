@@ -1,0 +1,2 @@
+resistor:R1 "R1" at (122, 165) #amber
+capacitor:C1 "C1" at (365, 122) #cyan [orientation=up]

@@ -2,7 +2,7 @@
 import { buildNetlist, compileSchematic, diagnoseSchematic, parseSchematicFence } from '@schemd/core';
 import { describe, expect, it } from 'vitest';
 
-import { connectivityDifference, connectivityOf } from '../src/index';
+import { convertCircuitikz, connectivityDifference, connectivityOf } from '../src/index';
 
 /**
  * The conformance corpus: one directory per case under
@@ -62,6 +62,21 @@ describe('conformance corpus', () => {
 
 		it('ends every file with exactly one newline', () => {
 			for (const text of [input, expected]) expect(text).toMatch(/[^\n]\n$/);
+		});
+
+		it('converts the TeX byte-for-byte with one precise mapping per nonblank line', () => {
+			const result = convertCircuitikz(input);
+			expect(result.diagnostics).toEqual([]);
+			expect(result.ok).toBe(true);
+			expect(result.source).toBe(expected);
+			expect(result.fence).toEqual(fence);
+			const lines = expected.split('\n').flatMap((line, index) => line.trim() === '' ? [] : [index + 1]);
+			expect(result.sourceMap.map((m) => m.schemdLine)).toEqual(lines);
+			for (const map of result.sourceMap) {
+				expect(map.column).toBeGreaterThan(0);
+				expect(map.endColumn).toBeGreaterThan(map.column);
+				expect(map.endColumn).toBeLessThanOrEqual(input.split('\n')[map.line - 1]!.length + 1);
+			}
 		});
 
 		it('expects a document schemd accepts without a single diagnostic', () => {

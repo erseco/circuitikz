@@ -1,159 +1,147 @@
 # @schemd/circuitikz
 
-Parse a strict subset of [CircuiTikZ](https://github.com/circuitikz/circuitikz), with exact coordinates
-and source diagnostics, as the first stage of a topology-preserving Schemd importer.
-
-**Status: M1 front end, diagnostics only. There is no successful conversion yet.**
-`convertCircuitikz` always returns `ok: false`, no source or fence, and an empty source map.
-An otherwise accepted input receives `unsupported: Conversion is not implemented yet`.
-Component mapping, label validation, graph construction, emission and compiler verification belong
-to M2/M3 and are **not available**. Nothing is published before 0.1.0.
-
-[REQUIREMENTS.md](./REQUIREMENTS.md) remains the contract. See the
-[implementation audit and design questions](./docs/implementation-audit.md) and the
-[requirements traceability matrix](./docs/requirements-traceability.md).
-
-## Public API
+Convert a strict CircuiTikZ subset to Schemd DSL, preserving component terminals, labels and nets.
+**Status: M2 implemented; M3 component families are not available yet.**
 
 ```ts
 import { convertCircuitikz } from '@schemd/circuitikz';
-
+import { compileSchematic } from '@schemd/core';
 const result = convertCircuitikz(String.raw`\begin{circuitikz}
-\coordinate (A) at (1.25cm,-2cm);
-\draw (A) -- ++(2,0) -- +(0,1) -- cycle;
-\end{circuitikz}`, { title: 'Example', strict: false });
-
-// M1 returns diagnostics, including the pending-conversion error.
-for (const diagnostic of result.diagnostics) {
-  // The host chooses how to display the diagnostics.
+\draw (0,0) to[battery1] (0,2) to[R=100] (2,2)
+  to[R=200] (4,2) -- (4,0) -- cycle;
+\end{circuitikz}`);
+if (result.ok) {
+  const compiled = compileSchematic(result.source!, result.fence!);
 }
 ```
 
-| Export | Available behavior |
+The original series-battery and divider-junctions examples convert byte for byte to the unchanged
+conformance documents. Each result is diagnosed, compiled and independently checked before success.
+No partial source, fence or source map is returned on failure.
+
+## Supported syntax
+
+Pass exactly one `\begin{circuitikz}` … `\end{circuitikz}` environment, optionally surrounded by
+whitespace or `%` comments. `\%` does not start a comment. LF, CRLF and CR end lines; source offsets
+and one-based columns count UTF-16 code units, with a tab counting as one column.
+
+| Construct | Support |
 | --- | --- |
-| `convertCircuitikz(source, options?)` | M1 parsing, coordinate resolution and diagnostics; no output yet |
-| `connectivityOf(netlist)` | Canonical nets of `ID.port`, with junction terminals removed |
-| `connectivityDifference(expected, actual)` | First connectivity difference as an actionable sentence, or `undefined` |
-| `canonical(nets)` | Sort and deduplicate terminals in each net; discard empty nets; sort nets by code unit |
+| `\draw[options] path;` | Component/wire paths; statement recovery at a semicolon outside braces |
+| `\coordinate (name) at (x,y);` | Previously defined literal names, including spaces, numbers and Unicode |
+| `(x,y)`, `(xcm,ycm)` | Exact signed decimal hundredths; no rounding or exponent notation |
+| `+(dx,dy)`, `++(dx,dy)` | Both move the pen; only `++` changes the relative reference |
+| `coordinate (name)` on a path | Name the current point; duplicate/undefined names are errors |
+| `--`, `|-`, `-|`, `cycle` | Wires and exact corner points; corners do not become junctions |
+| `R`, `resistor`, `american resistor`, `european resistor` | Resistor, `in` → `out` |
+| `C`, `capacitor` | Capacitor, `in` → `out` |
+| `L`, `inductor`, `american inductor`, `cute inductor`, `european inductor` | Inductor, `in` → `out` |
+| `battery1` | Battery source, `positive` → `negative` by default |
+| `short` | Wire; labels and invert on wires are rejected |
 
-The existing topology oracle reflects **connection-driven** core netlists. It does not add isolated
-terminals from the node port inventory. This conflicts with the terminal-complete graph specified by
-R-5.1.3; the [M2 decision](./docs/implementation-audit.md#decisions-before-m2) must be reviewed before
-conversion relies on it. The API and `REQUIREMENTS.md` have not been changed to hide the conflict.
-
-Type-only exports are `CircuitConnectivity`, `CircuitikzConversion`, `CircuitikzDiagnostic`,
-`CircuitikzDiagnosticCode`, `CircuitikzMapping`, and `ConvertCircuitikzOptions`, also available from
-`@schemd/circuitikz/types`. Their existing interfaces are unchanged.
-
-### Host options
-
-| Key | Accepted value | Default |
-| --- | --- | --- |
-| `title` | Nonblank string, at most 120 UTF-16 code units | `Converted CircuiTikZ circuit` |
-| `strict` | Boolean; turn presentation warnings into errors | `false` |
-| `maxSourceLength` | Integer from 1 through 1,000,000 | `100000` |
-
-A non-string source or invalid options throw `TypeError`. Unknown own keys, including symbol and
-non-enumerable keys, are rejected. A supplied property with value `undefined` is invalid; omit it to
-use the default. Malformed TeX is reported as diagnostics. Calls perform no I/O and retain no state.
-
-## M1 input syntax
-
-Pass exactly one `\begin{circuitikz}` … `\end{circuitikz}` environment. Only whitespace and `%`
-comments may surround it. LF, CRLF and CR each end a line. Columns and offsets count UTF-16 code
-units; a tab is one column. `\%` is a token rather than a comment marker; M1 does not promise that it
-will be a supported component label in M2.
-
-The parser retains spans and component option tokens for these statements:
+Environment `fixbatteries` reverses battery1 polarity. `invert` reverses a component's terminal order;
+repeating invert is idempotent, matching CircuiTikZ. Component orientation is derived from semantic
+ports and the path direction. Diagonal, zero-length or sub-0.84-unit component segments are errors.
+Body collisions and labels outside the fixed canvas are reported as geometry errors before emission.
 
 ```tex
-\begin{circuitikz}
-\coordinate (supply) at (0cm,0cm);
-\draw (supply) coordinate (return) to[battery1] ++(0,2)
-  to[R=100] ++(2,0) |- (return) -- cycle;
+\begin{circuitikz}[fixbatteries]
+\coordinate (A) at (0cm,0cm);
+\draw (A) to[R=$R_1$] ++(2,0) coordinate (B)
+  |- +(1,2) -- ++(0,3) to[C=100] (0,3) -| (A);
 \end{circuitikz}
 ```
 
-This example **parses but does not convert**. Component kinds, labels, polarity, dimensions and
-connections are not validated by the M1 front end.
+Coordinates use integer hundredths throughout. One TikZ unit is 100 Schemd units; y is inverted,
+80-unit margins are added, and midpoints round down after normalization. IDs follow first appearance
+per kind. Output has stable declaration/connection order, fixed colors and exactly one final newline.
+Every nonblank output line has a source-map entry, including connection lines.
 
-Coordinates support absolute `(x,y)` and `(xcm,ycm)`, relative `+(dx,dy)` and `++(dx,dy)`, references
-to earlier named coordinates, inline `coordinate (name)`, and `cycle` as a segment destination.
-Names are literal TikZ names: numbers, spaces, hyphens and Unicode work; anchors, calculations,
-macros and coordinate-system punctuation do not. Repeated definitions and undefined references
-produce `reference` errors.
+Vertices coincide only at exactly equal coordinates. Crossings do not create electrical connections.
+Positive-length collinear overlaps are errors. A source-ordered wire spanning forest removes redundant
+cycle edges. Zero-length wire steps draw no segment and do not inflate junction degree. Real vertices
+with three or more edge ends become junctions. Wire geometry with no terminal or junction is rejected.
+Unconnected component terminals are preserved as singleton nets rather than being omitted.
 
-Decimals are accumulated digit by digit into integer hundredths. Signs and negative zero are
-handled exactly; excessive decimal precision is rejected, never rounded. Unsupported units,
-exponents, polar coordinates, anchors and coordinate calculations produce diagnostics. Integer
-multiplication, final scaling and relative addition are checked for overflow.
+### Labels and options
 
-`+` moves the pen but keeps the previous reference point. `++` moves both:
+`NAME=text` and `l=text` label the component without synthetic units. Without a label, its ID is used.
+Multiple component kinds or label-bearing keys are errors; there is no guessed precedence. The
+annotation/presentation keys `l_`, `l^`, `a`, `a_`, `a^` also retain their text, with a warning about
+presentation. Text labels support letters, digits, spaces and `. , - + / ( ) : '`. Text braces and
+quotes are rejected. Math labels `$…$` support core's micro-math commands, sub/superscripts, grouping,
+Greek letters in core's allowlist, `\Omega`, `\mu`, and spacing `\,`, `\;`, `\ `. Unknown commands
+are rejected instead of being printed literally. Labels are validated before DSL quoting.
 
-```tex
-\draw (0,0) -- +(1,0) -- +(0,1);   % visits (0,0), (1,0), (0,1)
-\draw (0,0) -- ++(1,0) -- ++(0,1); % visits (0,0), (1,0), (1,1)
-```
+Only explicitly enumerated presentation keys are ignored: `mirror`, `thick`, `thin`, `dashed`,
+`color=`, `line width=`, `-*`, `*-`, `*-*`, `-o`, `o-`, `o-o`. Each produces a warning; `strict: true`
+escalates it to an error. Unknown keys, voltage/current/flow annotations and component naming keys
+are errors. Environment/draw options use the same pure-presentation list, plus environment fixbatteries.
 
-The parser records `--`, `|-`, `-|` and `to[...]`; graph expansion of corner operations is deferred
-to M2. Other path operations and statement commands are rejected. Recovery skips to the next
-semicolon outside braces, or the environment end, so independent statement errors remain visible.
+Unsupported: whole LaTeX documents, macros/expansion, scopes, styles, loops, arbitrary nodes, polar
+coordinates, anchors, coordinate calculations, unsupported units, arcs/curves/shapes, other sources,
+transistors and op-amps. M3 batteries, diodes, switches and ground are still rejected in this milestone.
 
-Environment `fixbatteries` is retained for M2. The explicitly enumerated pure presentation keys
-`mirror`, `thick`, `thin`, `dashed`, `color=`, `line width=`, `-*`, `*-`, `*-*`, `-o`, `o-`, and `o-o`
-produce warnings in environment/draw options; `strict` escalates them. Other environment/draw keys
-are rejected. M1 only parses component option groups structurally: R-4.4/R-4.5 semantic validation,
-including duplicate labels, `invert`, ground nodes and additional pole shapes, is pending.
+## API
 
-### Limits and diagnostics
+| Export | Contract |
+| --- | --- |
+| `convertCircuitikz(source, options?)` | Convert or return complete diagnostics with no partial output |
+| `connectivityOf(netlist)` | Sorted real-component terminals per net, including isolated ports; junction terminals excluded |
+| `connectivityDifference(expected, actual)` | First connectivity difference or `undefined` |
+| `canonical(nets)` | Sort/deduplicate terminals, discard empty nets, sort nets by code unit |
 
-Before the corresponding work, M1 checks source length, 1024 statements, 4096 path elements per
-statement (including the initial point and inline names), 512 non-`short` component declarations,
-and brace nesting depth 32. A limit is inclusive. Junction construction and its ceiling belong to M2.
+The topology helper now completes core 1.1's connection-driven netlist from its node port inventory.
+This is an observable correction to its M0/M1 behavior: isolated ports now appear in singleton nets.
+Expected connectivity is built independently from the input graph before any DSL exists. Component
+identity, kind, label, color, position, orientation and variant are checked independently of net equality.
 
-| Code | Meaning in M1 | Action |
+Type-only exports: `CircuitConnectivity`, `CircuitikzConversion`, `CircuitikzDiagnostic`,
+`CircuitikzDiagnosticCode`, `CircuitikzMapping`, `ConvertCircuitikzOptions`, also via the `/types` subpath.
+Public type interfaces are unchanged. Each conversion owns its state and performs no I/O.
+
+| Host option | Accepted values | Default |
 | --- | --- | --- |
-| `syntax` | Missing delimiter, malformed options or excessive precision | Correct the named token or decimal |
-| `unsupported` | Environment, statement, path, numeric form, key, or the pending-conversion marker | Use the documented grammar; await M2 for actual conversion |
-| `reference` | Undefined or repeated named coordinate | Define first, or rename the duplicate |
-| `limit` | Resource budget or exact-integer overflow | Split the circuit or reduce coordinates |
-| `geometry` | Reserved for M2 geometry checks | Not produced by M1 |
-| `internal` | Reserved for M2 compiler/oracle verification failures | Not produced by M1 |
+| `title` | Nonblank string, at most 120 UTF-16 code units | `Converted CircuiTikZ circuit` |
+| `strict` | Boolean | `false` |
+| `maxSourceLength` | Integer 1 … 1000000 | `100000` |
 
-Each diagnostic contains its complete message, code, severity, one-based `line`, `column`, and
-exclusive `endColumn` on that line. Sorting is stable by line and column. Presentation keys alone
-may produce warnings. The 36 rejection fixtures pin full messages and positions.
+Invalid host arguments/options throw TypeError, including unknown own keys and explicitly supplied
+undefined values. Malformed TeX never throws. Every diagnostic has code, severity, full message,
+line, column and exclusive endColumn. Codes are syntax, unsupported, reference, geometry, limit,
+and internal. Internal means a converter verification failure and asks for an input bug report.
+Diagnostics are stably ordered by source position; only presentation options produce warnings.
 
-## Compatibility and verification
+Active ceilings: source length, 1024 statements, 4096 path elements per statement, 512 components,
+512 junctions, brace nesting 32, and the core maximum canvas extent. Limits are checked before the
+corresponding work; exact-integer overflow is rejected. Fuzz failures are minimized in timed workers.
 
-TypeScript strict checking, ESM with `.js` relative imports, Node.js 24+, browsers and Web Workers.
-No runtime dependencies; `@schemd/core` is the sole peer, with the existing `^1.1.0` range.
-The lockfile currently tests core 1.1.0. No dependency or public type changes were introduced.
+## Compatibility and validation
+
+Node.js 24+, strict TypeScript, ESM `.js` specifiers, browser/worker-compatible source, no runtime
+or new development dependencies. Bun **1.4.4** is pinned; core `^1.1.0` remains the sole peer. Core 1.1.0
+has an apparent battery glyph/port polarity inconsistency: output preserves **netlist** polarity;
+visual fidelity, including that upstream glyph issue, is not guaranteed.
 
 ```sh
 bun ci
 bun run check
 bun run test
-bun run test:coverage       # 100% statements, branches, functions and lines per file
-bun run test:mutation       # passing baseline, then every named mutant killed by a test failure
-bun run test:fuzz:contract  # build and 20000 cases, seed 6049357
+bun run test:coverage
+bun run test:mutation
+bun run test:fuzz:contract
 bun run build
-bun run test:smoke          # built exports, declarations and host-free browser-target bundle
 bun run size
 bun run release:check
 npm pack --dry-run
+bun run test:smoke
 ```
 
-Fuzzing includes random characters, grammar tokens, mutated conformance inputs, valid option
-variations and M1 resource boundaries. Each case runs twice in an isolated worker with a deadline;
-a failure writes `fuzz-failure-<seed>.json`, with the original and deletion-minimized input and options.
-CI uploads failures. Override the seed for a local run with
-`node scripts/fuzz.mjs --seed=123 --cases=20000` after building.
+Coverage gates remain 100% per source file on all four axes. CI runs at least 20000 seeded cases,
+records minimized failures, checks the built package under Node 24, and runs on stacked PR bases.
+The browser-target bundle smoke runs in a VM with standard TextEncoder/TextDecoder Web APIs and
+without Node/DOM globals. It is not a real-browser integration run. No releases or tags are created.
 
-The browser-target bundle smoke test executes without Node or DOM globals in a VM; it is not a
-real-browser integration test. M2 must additionally exercise successful conversion and the compiler
-in supported browser/worker engines. The existing series-battery and divider-junctions fixtures
-remain unchanged and continue to compile, route on the first pass and match their declared nets.
-
-Read [CONTRIBUTING.md](./CONTRIBUTING.md) before contributing. Maintainer design decisions and review
-remain required; no releases, tags or upstream comments are created by this change.
+[Requirements](REQUIREMENTS.md) · [Contributing](CONTRIBUTING.md) · [M2 design](docs/m2-design.md) ·
+[Traceability](docs/requirements-traceability.md) · [Validation](docs/validation-results.md) ·
+[Initial audit](docs/implementation-audit.md) · [Changelog](CHANGELOG.md)

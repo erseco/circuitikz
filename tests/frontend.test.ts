@@ -255,8 +255,11 @@ describe('public M1 API', () => {
 		expect(d.sorted().map((item) => item.message)).toEqual(['first phase', 'second phase', 'later column', 'later line']);
 		expect(d.items[0]?.message).toBe('later line');
 	});
-	it('returns the documented pending diagnostic, never partial output', () => {
-		expect(convertCircuitikz(wrap('\\draw (0,0) -- (2,0);'))).toEqual({ ok: false, source: undefined, fence: undefined, sourceMap: [], diagnostics: [{ code: 'unsupported', severity: 'error', message: 'Conversion is not implemented yet; this milestone validates the supported input syntax only.', line: 1, column: 1, endColumn: 7 }] });
+	it('converts an isolated resistor with both terminals retained', () => {
+		expect(convertCircuitikz(wrap('\\draw (0,0) to[R] (2,0);'))).toEqual({ ok: true,
+			source: 'resistor:R1 "R1" at (180, 80) #amber\n',
+			fence: { bounds: { width: 360, height: 160 }, title: 'Converted CircuiTikZ circuit' },
+			sourceMap: [{ schemdLine: 1, line: 2, column: 13, endColumn: 18 }], diagnostics: [] });
 	});
 
 	it('warns only about explicitly documented presentation keys and escalates in strict mode', () => {

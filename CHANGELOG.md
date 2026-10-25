@@ -8,6 +8,21 @@ Written for someone deciding whether to upgrade. Sections: `Fixed`, `Added`, `Re
 
 ### Added
 
+- M2 conversion of passives, battery1 and wires with exact graph nets, deterministic emission,
+  terminal polarity, labels, source maps and independent core/compiler verification.
+- Coordinate/alias/polarity conformance cases, geometry/label rejection cases, topology properties,
+  corruption-oracle tests and graph resource tests.
+
+### Changed (M2)
+
+- connectivityOf now includes isolated non-junction ports as singleton nets, correcting its former
+  connection-only behavior without omitting any input terminal.
+- Conflicting kinds/labels are rejected; repeated invert is idempotent. Zero-length wire steps do not
+  inflate junction degree. Unsupported geometry is diagnosed before output verification.
+- The full-entry size gates are measured and raised to 9 KiB for M2; the 12 KiB release ceiling holds.
+
+### Added (M1)
+
 - The diagnostics-only M1 `convertCircuitikz` entry point: a bounded scanner and span-aware parser,
   exact integer coordinates, relative and named references, resource ceilings, validated host options,
   stable actionable diagnostics and strict presentation warnings. It does not emit Schemd yet;

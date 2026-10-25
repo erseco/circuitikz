@@ -18,14 +18,14 @@ R1.out -> R2.in #amber [ortho]
 R2.out -> B1.positive #amber [ortho]`;
 
 describe('connectivityOf', () => {
-	it('exposes core 1.1 open-terminal behavior for the M2 design review', () => {
+	it('completes core 1.1 nets with isolated non-junction ports', () => {
 		const netlist = netlistOf('resistor:R1 "R1" at (100, 100) #amber');
 		expect(netlist.nodes.map(({ id, ports }) => ({ id, ports }))).toEqual([{ id: 'R1', ports: ['in', 'out'] }]);
 		expect(netlist.nets).toEqual([]);
-		expect(connectivityOf(netlist)).toEqual([]);
+		expect(connectivityOf(netlist)).toEqual([['R1.in'], ['R1.out']]);
 		/* R-5.1.3's intended graph must instead contain both singleton nets.
 		   Keep the public oracle unchanged until this conflict is reviewed. */
-		expect(connectivityDifference([['R1.in'], ['R1.out']], connectivityOf(netlist))).toBe('R1.in should be connected to R1.in, but is not connected at all.');
+		expect(connectivityDifference([['R1.in'], ['R1.out']], connectivityOf(netlist))).toBeUndefined();
 	});
 	it('lists each net as sorted ID.port keys, nets sorted', () => {
 		expect(connectivityOf(netlistOf(series))).toEqual([
@@ -44,7 +44,7 @@ junction:J1 "J1" at (270, 100) #slate
 R1.out -> J1.node #amber [ortho]
 J1.node -> R2.in #slate [ortho]
 J1.node -> R3.in #slate [ortho]`;
-		expect(connectivityOf(netlistOf(source))).toEqual([['R1.out', 'R2.in', 'R3.in']]);
+		expect(connectivityOf(netlistOf(source))).toEqual([['R1.in'], ['R1.out', 'R2.in', 'R3.in'], ['R2.out'], ['R3.out']]);
 	});
 
 	it('joins nets that meet only through a chain of junctions', () => {
@@ -57,7 +57,7 @@ junction:JB "JB" at (380, 100) #slate
 R1.out -> JA.node #amber [ortho]
 JA.node -> JB.node #slate [ortho]
 JB.node -> R2.in #slate [ortho]`;
-		expect(connectivityOf(netlistOf(source))).toEqual([['R1.out', 'R2.in']]);
+		expect(connectivityOf(netlistOf(source))).toEqual([['R1.in'], ['R1.out', 'R2.in'], ['R2.out']]);
 	});
 
 	it('keeps two junctions on different nets apart', () => {
@@ -73,8 +73,7 @@ JA.node -> R2.in #slate [ortho]
 R3.out -> JB.node #amber [ortho]
 JB.node -> R4.in #slate [ortho]`;
 		expect(connectivityOf(netlistOf(source))).toEqual([
-			['R1.out', 'R2.in'],
-			['R3.out', 'R4.in']
+			['R1.in'], ['R1.out', 'R2.in'], ['R2.out'], ['R3.in'], ['R3.out', 'R4.in'], ['R4.out']
 		]);
 	});
 
