@@ -139,7 +139,7 @@ describe('M2 conversion', () => {
 describe('M2 metamorphic properties', () => {
 	it('normalizes uniform integer coordinate translations byte-identically', () => {
 		for (let x = -10; x <= 10; x += 2) {
-			const shape = (dx: number, dy: number) => `\\draw (${dx},${dy}) to[R=100] (${dx + 2},${dy}) -- (${dx + 2},${dy + 2}) to[C] (${dx},${dy + 2}) -- cycle;`;
+			const shape = (dx: number, dy: number) => `\\draw (${dx},${dy}) to[R=100] (${dx + 2},${dy}) -- (${dx + 2},${dy + 2}) to[C] (${dx},${dy + 2}) -- (${dx},${dy});`;
 			expect(convert(shape(x, x + 3)).source).toBe(convert(shape(0, 0)).source);
 		}
 	});

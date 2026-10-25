@@ -37,6 +37,10 @@ export function precision(d: Diagnostics, value: string, span: Span): void {
 	d.add('syntax', `${value} has more than two decimal places; use at most two decimal places without rounding.`, span);
 }
 
+export function cycleAfterTo(d: Diagnostics, span: Span): void {
+	d.add('unsupported', 'cycle after to[...] closes inside that component\'s drawing in CircuiTikZ; end the path at an explicit coordinate instead.', span);
+}
+
 export function overflow(d: Diagnostics, span: Span): void {
 	d.add('limit', 'The coordinate exceeds the exact integer range; use smaller coordinates or relative offsets.', span);
 }

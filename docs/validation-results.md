@@ -52,12 +52,14 @@ the unchanged lockfile; CI runs the same gates on Node 24. Every mandatory comma
 
 | Measure | Result |
 | --- | --- |
-| Tests | 381 passed |
-| Mutants | 78/78 killed |
-| Coverage (stmts / branches / funcs / lines) | 866/866, 667/667, 100/100, 609/609, 100% per file |
-| Size | 23688 B minified, 8810 B gzip, 7942 B brotli-11 (9 KiB gates unchanged) |
+| Tests | 383 passed |
+| Mutants | 79/79 killed |
+| Coverage (stmts / branches / funcs / lines) | 873/873, 673/673, 101/101, 613/613, 100% per file |
+| Size | 23929 B minified, 8892 B gzip, 8016 B brotli-11 (9 KiB gates unchanged) |
 
 Changes on top of the M1 follow-up: an endpoint strictly inside another segment is a `geometry`
 error (`t-junction` fixture), a wire with an unconnected end is `unsupported` (`wire-dead-end`
 fixture; `segments-overlap` now also reports its dead end), and parts are matched to segments by
-index rather than by span start. Both original conformance documents are unchanged.
+index rather than by span start. Both original conformance documents are unchanged. `cycle-return`
+now closes with an explicit `-- (0,0)`, because `cycle` after `to[R]` is rejected; its expected
+document is byte-identical.
