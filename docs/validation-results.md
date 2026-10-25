@@ -42,3 +42,22 @@ Both original conformance documents are unchanged. New expectations were indepen
 generated once and read in full; see m2-design.md. M3 components remain deferred to the next stacked PR.
 The browser-target smoke executes real successful conversion with standard TextEncoder/TextDecoder Web
 APIs in a VM without Node/DOM globals; it is not a real-browser engine integration test.
+
+## Review follow-up
+
+Rerun on 2026-10-25 after the code-review fixes, locally with **Node.js 26.12.1** and Bun 1.4.4 and
+the unchanged lockfile; CI runs the same gates on Node 24. Every mandatory command passed again:
+`bun ci`, `check`, `test`, `test:coverage`, `test:mutation`, `test:fuzz:contract` (seed 6049357,
+20000 cases / 40000 conversions), `build`, `size`, `release:check`, `npm pack --dry-run`, `test:smoke`.
+
+| Measure | Result |
+| --- | --- |
+| Tests | 381 passed |
+| Mutants | 78/78 killed |
+| Coverage (stmts / branches / funcs / lines) | 866/866, 667/667, 100/100, 609/609, 100% per file |
+| Size | 23688 B minified, 8810 B gzip, 7942 B brotli-11 (9 KiB gates unchanged) |
+
+Changes on top of the M1 follow-up: an endpoint strictly inside another segment is a `geometry`
+error (`t-junction` fixture), a wire with an unconnected end is `unsupported` (`wire-dead-end`
+fixture; `segments-overlap` now also reports its dead end), and parts are matched to segments by
+index rather than by span start. Both original conformance documents are unchanged.
