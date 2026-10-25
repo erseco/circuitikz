@@ -1,0 +1,8 @@
+resistor:R1 "R1" at (180, 80) #amber
+capacitor:C1 "C1" at (380, 80) #cyan
+ground:G1 "G1" at (280, 280) #slate [style=earth]
+junction:J1 "J1" at (280, 80) #slate
+
+R1.out -> J1.node #amber [ortho]
+J1.node -> C1.in #slate [ortho]
+J1.node -> G1.in #slate [ortho]

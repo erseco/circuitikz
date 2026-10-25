@@ -1,0 +1,18 @@
+[
+  {
+    "code": "unsupported",
+    "severity": "error",
+    "message": "Label character @ is not supported; use the documented CircuiTikZ subset instead.",
+    "line": 2,
+    "column": 20,
+    "endColumn": 21
+  },
+  {
+    "code": "unsupported",
+    "severity": "error",
+    "message": "Label character 😀 is not supported; use the documented CircuiTikZ subset instead.",
+    "line": 2,
+    "column": 21,
+    "endColumn": 23
+  }
+]

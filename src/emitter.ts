@@ -1,4 +1,4 @@
-import type { SchematicFence } from '@schemd/core';
+import type { SchematicFence, SchematicOrientation } from '@schemd/core';
 import type { Circuit } from './circuit.js';
 import type { Span } from './ast.js';
 import type { CircuitikzMapping } from './types.js';
@@ -7,12 +7,12 @@ import { MARGIN } from './limits.js';
 export interface Emission { readonly source: string; readonly fence: SchematicFence; readonly sourceMap: readonly CircuitikzMapping[] }
 
 /** Orientation is derived from semantic terminal order, including polarity swaps. */
-export function placement(circuit: Circuit, from: number, to: number, reverse: boolean): { x: number; y: number; orientation: string } {
+export function placement(circuit: Circuit, from: number, to: number, reverse: boolean): { x: number; y: number; orientation: SchematicOrientation } {
 	const a = circuit.vertices[from]!, b = circuit.vertices[to]!;
 	const dx = (b.x - a.x) * (reverse ? -1 : 1), dy = (b.y - a.y) * (reverse ? -1 : 1);
 	return { x: Math.floor(((a.x - circuit.bounds.minX) + (b.x - circuit.bounds.minX)) / 2) + MARGIN,
 		y: Math.floor(((circuit.bounds.maxY - a.y) + (circuit.bounds.maxY - b.y)) / 2) + MARGIN,
-		orientation: dx > 0 ? 'right' : dx < 0 ? 'left' : dy < 0 ? 'down' : 'up' };
+		orientation: from === to ? 'right' : dx > 0 ? 'right' : dx < 0 ? 'left' : dy < 0 ? 'down' : 'up' };
 }
 
 /** Emit source once; the graph's expected connectivity already exists. */
@@ -24,7 +24,7 @@ export function emit(circuit: Circuit, title: string): Emission {
 	};
 	for (const part of circuit.parts) {
 		const p = placement(circuit, part.from, part.to, part.first !== part.spec.canonical);
-		const options = [part.spec.variant === '' ? '' : `type=${part.spec.variant}`, p.orientation === 'right' ? '' : `orientation=${p.orientation}`].filter((v) => v !== '');
+		const options = [part.spec.variant === '' ? '' : `${part.spec.kind === 'ground' ? 'style' : 'type'}=${part.spec.variant}`, p.orientation === 'right' ? '' : `orientation=${p.orientation}`].filter((v) => v !== '');
 		add(`${part.spec.kind}:${part.id} "${part.spec.label ?? part.id}" at (${p.x}, ${p.y}) #${part.spec.color}${options.length === 0 ? '' : ` [${options.join(' ')}]`}`, part.span);
 	}
 	for (const junction of circuit.junctions) {

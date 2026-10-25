@@ -15,18 +15,22 @@ export interface PartSpec extends Definition { readonly label: string | undefine
 
 /** CircuiTikZ pgfcircbipoles.tex: resistor/generic, capacitor, inductor and
  * Battery 1; pgfcircpath.tex's inverted xscale. Core ports, not glyph pixels,
- * determine terminal names. M3 extends this same table, never the parser. */
+ * determine terminal names. Ground has a separate explicit unary path production. */
 const DEFINITIONS: readonly (readonly [readonly string[], Definition])[] = [
 	[['R', 'resistor', 'american resistor', 'european resistor'], { kind: 'resistor', prefix: 'R', color: 'amber', first: 'in', last: 'out', canonical: 'in', variant: '' }],
 	[['C', 'capacitor'], { kind: 'capacitor', prefix: 'C', color: 'cyan', first: 'in', last: 'out', canonical: 'in', variant: '' }],
 	[['L', 'inductor', 'american inductor', 'cute inductor', 'european inductor'], { kind: 'inductor', prefix: 'L', color: 'purple', first: 'in', last: 'out', canonical: 'in', variant: '' }],
-	[['battery1'], { kind: 'source', prefix: 'B', color: 'blue', first: 'positive', last: 'negative', canonical: 'negative', variant: 'battery' }],
+	[['battery1', 'battery', 'battery2'], { kind: 'source', prefix: 'B', color: 'blue', first: 'positive', last: 'negative', canonical: 'negative', variant: 'battery' }],
+	[['D', 'diode', 'empty diode', 'full diode'], { kind: 'diode', prefix: 'D', color: 'rose', first: 'anode', last: 'cathode', canonical: 'anode', variant: '' }],
+	[['zD'], { kind: 'diode', prefix: 'D', color: 'rose', first: 'anode', last: 'cathode', canonical: 'anode', variant: 'zener' }],
+	[['leD'], { kind: 'diode', prefix: 'D', color: 'rose', first: 'anode', last: 'cathode', canonical: 'anode', variant: 'led' }],
+	[['nos', 'ospst', 'ncs', 'cspst'], { kind: 'switch', prefix: 'S', color: 'emerald', first: 'in', last: 'out', canonical: 'in', variant: 'spst' }],
 	[['short'], { kind: 'wire', prefix: '', color: '', first: '', last: '', canonical: '', variant: '' }]
 ];
 
 /** Only explicitly enumerated presentation keys are ignored. */
 export function presentationKey(key: Key, diagnostics: Diagnostics): boolean {
-	if (['mirror', 'thick', 'thin', 'dashed', '-*', '*-', '*-*', '-o', 'o-', 'o-o'].includes(key.name) && key.value === undefined
+	if (['mirror', 'thick', 'thin', 'dashed', '-*', '*-', '*-*', '-o', 'o-', 'o-o', '*-o', 'o-*', 'd-o', 'o-d', 'd-', '-d', 'd-*', '*-d', 'd-d', '.-', '.-*', '.-o', '.-d', '-.', 'o-.', '*-.', 'd-.', '.-.'].includes(key.name) && key.value === undefined
 		|| ['color', 'line width'].includes(key.name) && key.value !== undefined) {
 		presentation(diagnostics, key.name, key.span); return true;
 	}
@@ -64,4 +68,16 @@ export function partOf(keys: readonly Key[], source: string, fixBatteries: boole
 	if (definition.kind === 'wire' && (labelled || invert)) unsupported(diagnostics, 'Labels or invert on short wires', span);
 	const inverted = invert !== (definition.kind === 'source' && fixBatteries);
 	return { ...definition, label, inverted };
+}
+
+/** CircuiTikZ pgfcircmonopoles.tex ground has three earth bars. Its input is a
+ * unary graph terminal; fixed rendered port offsets remain core's responsibility. */
+export function groundOf(keys: readonly Key[], span: Span, diagnostics: Diagnostics): PartSpec {
+	let found = false;
+	for (const key of keys) {
+		if (key.name === 'ground' && key.value === undefined && !found) found = true;
+		else if (!presentationKey(key, diagnostics)) unsupported(diagnostics, `Ground option ${key.name}`, key.span);
+	}
+	if (!found) syntax(diagnostics, 'node[ground]{}', span);
+	return { kind: 'ground', prefix: 'G', color: 'slate', first: 'in', last: '', canonical: 'in', variant: 'earth', label: undefined, inverted: false };
 }

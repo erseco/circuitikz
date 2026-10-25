@@ -305,8 +305,8 @@ const mutants = [
 	{
 		name: 'independent errors are retained',
 		file: 'src/parser.ts',
-		from: 'if (statement === undefined) this.recover();',
-		to: 'if (statement === undefined) { this.recover(); return undefined; }',
+		from: 'if (statement === undefined) this.recover(start);',
+		to: 'if (statement === undefined) { this.recover(start); return undefined; }',
 		tests: ['tests/frontend.test.ts']
 	},
 	{
@@ -368,9 +368,24 @@ const mutants = [
 	{"name": "compiled kinds are independently checked", "file": "src/verify.ts", "from": "actual.kind !== part.spec.kind || ", "to": " ", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]},
 	{"name": "compiled labels are independently checked", "file": "src/verify.ts", "from": " || actual.label !== (part.spec.label ?? part.id)", "to": "", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]},
 	{"name": "compiled orientations are independently checked", "file": "src/verify.ts", "from": "(actual.orientation ?? 'right') !== orientation", "to": "false", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]},
-	{"name": "compiled variants are independently checked", "file": "src/verify.ts", "from": "if (part.spec.variant !== '' &&", "to": "if (false &&", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]},
+	{"name": "compiled variants are independently checked", "file": "src/verify.ts", "from": "if (variant !== expectedVariant)", "to": "if (false)", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]},
 	{"name": "topology comparison cannot be bypassed", "file": "src/verify.ts", "from": "return connectivityDifference(circuit.expected, connectivityOf(buildNetlist(compiled)));", "to": "return undefined;", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]},
-	{"name": "body overlap is preflighted before verification", "file": "src/geometry.ts", "from": "r.minX < p.maxX && p.minX < r.maxX && r.minY < p.maxY && p.minY < r.maxY", "to": "false", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]}
+	{"name": "body overlap is preflighted before verification", "file": "src/geometry.ts", "from": "r.minX < p.maxX && p.minX < r.maxX && r.minY < p.maxY && p.minY < r.maxY", "to": "false", "tests": ["tests/conversion.test.ts", "tests/conformance.test.ts", "tests/verification.test.ts", "tests/topology.test.ts", "tests/graph.test.ts"]},
+	{"name": "battery2 alias is not approximated or omitted", "file": "src/components.ts", "from": "'battery1', 'battery', 'battery2'", "to": "'battery1', 'battery'", "tests": ["tests/m3.test.ts", "tests/verification.test.ts"]},
+	{"name": "diode cathode remains at the path end", "file": "src/components.ts", "from": "first: 'anode', last: 'cathode', canonical: 'anode', variant: ''", "to": "first: 'cathode', last: 'anode', canonical: 'anode', variant: ''", "tests": ["tests/m3.test.ts", "tests/verification.test.ts"]},
+	{"name": "zener diode keeps its variant", "file": "src/components.ts", "from": "canonical: 'anode', variant: 'zener'", "to": "canonical: 'anode', variant: 'led'", "tests": ["tests/m3.test.ts", "tests/verification.test.ts"]},
+	{"name": "LED keeps its variant", "file": "src/components.ts", "from": "canonical: 'anode', variant: 'led'", "to": "canonical: 'anode', variant: 'zener'", "tests": ["tests/m3.test.ts", "tests/verification.test.ts"]},
+	{"name": "closed SPST remains a supported component kind", "file": "src/components.ts", "from": "'nos', 'ospst', 'ncs', 'cspst'", "to": "'nos', 'ospst', 'cspst'", "tests": ["tests/m3.test.ts", "tests/verification.test.ts"]},
+	{"name": "ground uses earth bars from the source shape", "file": "src/components.ts", "from": "canonical: 'in', variant: 'earth'", "to": "canonical: 'in', variant: 'signal'", "tests": ["tests/m3.test.ts", "tests/verification.test.ts"]},
+	{"name": "ground contributes exactly one edge end", "file": "src/graph.ts", "from": "if (segment.spec?.kind !== 'ground')", "to": "if (true)", "tests": ["tests/m3.test.ts", "tests/verification.test.ts"]},
+	{"name": "ground contributes exactly one terminal", "file": "src/graph.ts", "from": "part.spec.kind === 'ground' ? [[part.from, part.first, true] as const]", "to": "false ? [[part.from, part.first, true] as const]", "tests": ["tests/m3.test.ts", "tests/verification.test.ts"]},
+	{"name": "ground retains its resolved coordinate", "file": "src/coordinates.ts", "from": "from: current, to: current, fromSpan: currentSpan", "to": "from: { x: 0, y: 0 }, to: { x: 0, y: 0 }, fromSpan: currentSpan", "tests": ["tests/m3.test.ts", "tests/verification.test.ts"]},
+	{"name": "ground declarations obey the component ceiling", "file": "src/parser.ts", "from": "!this.expect('}') || !this.component(operation)", "to": "!this.expect('}')", "tests": ["tests/m3.test.ts", "tests/verification.test.ts"]},
+	{"name": "node body recovery preserves consumed brace depth", "file": "src/parser.ts", "from": "for (let i = start; i < this.cursor; i += 1)", "to": "for (let i = start; false; i += 1)", "tests": ["tests/m3.test.ts", "tests/verification.test.ts"]},
+	{"name": "consumed synchronization tokens do not hide the next statement", "file": "src/parser.ts", "from": "if (this.tokens[this.cursor - 1]!.value === ';' && depth === 0) return;", "to": "if (false) return;", "tests": ["tests/m3.test.ts", "tests/verification.test.ts"]},
+	{"name": "ground emits a style option rather than a type", "file": "src/emitter.ts", "from": "part.spec.kind === 'ground' ? 'style' : 'type'", "to": "'type'", "tests": ["tests/m3.test.ts", "tests/verification.test.ts"]},
+	{"name": "diode color aliases are verified as aliases", "file": "src/verify.ts", "from": "part.spec.color === 'rose' ? 'alias' : 'token'", "to": "'token'", "tests": ["tests/m3.test.ts", "tests/verification.test.ts"]},
+	{"name": "label diagnostics retain sub-token UTF-16 positions", "file": "src/labels.ts", "from": "column: token.column + offset, endColumn: token.column + offset + c.length", "to": "column: token.column, endColumn: token.endColumn", "tests": ["tests/m3.test.ts"]}
 ];
 
 async function sourceFiles(directory) {

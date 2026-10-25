@@ -8,6 +8,15 @@ Written for someone deciding whether to upgrade. Sections: `Fixed`, `Added`, `Re
 
 ### Added
 
+- M3 battery/battery2, standard/Zener/LED diodes, supported SPST aliases and unary earth ground,
+  with source-verified terminal conventions, orientation/invert fixtures and component limit checks.
+- Built-in circle/diamond/rectjoinfill pole decorations retain explicit presentation warnings.
+- UTF-16 label-character diagnostics now underline the offending sub-token character exactly.
+- Recovery retains brace depth already consumed by malformed node bodies and does not hide the
+  following statement after an already-consumed synchronization semicolon.
+
+### Added (M2)
+
 - M2 conversion of passives, battery1 and wires with exact graph nets, deterministic emission,
   terminal polarity, labels, source maps and independent core/compiler verification.
 - Coordinate/alias/polarity conformance cases, geometry/label rejection cases, topology properties,

@@ -11,10 +11,12 @@ export function checkPlacement(circuit: Circuit, diagnostics: Diagnostics): void
 	const candidates: { component: SchematicComponent; span: Circuit['parts'][number]['span'] }[] = circuit.parts.map((part) => {
 		const p = placement(circuit, part.from, part.to, part.first !== part.spec.canonical);
 		const common = { id: part.id, label: part.spec.label ?? part.id, x: p.x, y: p.y, line: 1,
-			orientation: p.orientation as 'right' | 'down' | 'left' | 'up', color: { kind: 'token' as const, value: 'slate' as const } };
+			orientation: p.orientation, color: { kind: 'token' as const, value: 'slate' as const } };
 		const kind = part.spec.kind;
 		const component: SchematicComponent = kind === 'resistor' || kind === 'capacitor' || kind === 'inductor'
-			? { ...common, kind } : { ...common, kind: 'source', variant: 'battery' };
+			? { ...common, kind } : kind === 'diode' ? { ...common, kind, diodeType: part.spec.variant === 'led' ? 'led' : part.spec.variant === 'zener' ? 'zener' : 'standard' }
+			: kind === 'switch' ? { ...common, kind, variant: 'spst' }
+			: kind === 'ground' ? { ...common, kind, groundStyle: 'earth' } : { ...common, kind: 'source', variant: 'battery' };
 		return { component, span: part.span };
 	});
 	for (const j of circuit.junctions) {

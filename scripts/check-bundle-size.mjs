@@ -25,6 +25,8 @@ const BUDGETS = [
 		   M1 measured 4406 B gzip / 3942 B brotli after front-end hardening.
 		   M2 adds graph construction, component/label semantics, emission, geometry
 		   preflight and independent verification: 8615 B gzip / 7762 B brotli.
+		   M3 families, unary ground and precise UTF-16 label spans measure
+		   9174 B gzip / 8278 B brotli and retain these same 9 KiB gates.
 		   Keep a 9 KiB gate below R-8.5.3's unchanged 12 KiB release ceiling. */
 		maxGzipBytes: 9 * 1024,
 		maxBrotliBytes: 9 * 1024

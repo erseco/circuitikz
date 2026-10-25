@@ -1,0 +1,18 @@
+[
+  {
+    "code": "syntax",
+    "message": "Expected node[ground]{}; correct the statement before converting it.",
+    "line": 2,
+    "column": 13,
+    "endColumn": 28,
+    "severity": "error"
+  },
+  {
+    "code": "unsupported",
+    "message": "Ground option sground is not supported; use the documented CircuiTikZ subset instead.",
+    "line": 2,
+    "column": 18,
+    "endColumn": 25,
+    "severity": "error"
+  }
+]

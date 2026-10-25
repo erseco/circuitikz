@@ -1,0 +1,6 @@
+resistor:R1 "R1" at (580, 80) #amber [orientation=left]
+source:B1 "B1" at (380, 80) #blue [type=battery]
+capacitor:C1 "C1" at (180, 80) #cyan [orientation=left]
+
+R1.out -> B1.positive #amber [ortho]
+B1.negative -> C1.in #blue [ortho]

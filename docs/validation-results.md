@@ -1,7 +1,7 @@
-# M2 validation results
+# M3 validation results
 
-Executed locally on 2026-10-25 with Node.js 24.22.1, Bun 1.4.4 and the unchanged lockfile.
-The M2 branch is stacked on M1. No upstream design approval or publication is claimed.
+Executed 2026-10-25 with Node.js 24.22.1, Bun 1.4.4 and the unchanged lockfile.
+Stack: M1 → M2 → M3. Upstream design approval is not claimed.
 
 | Command | Result |
 | --- | --- |
@@ -17,28 +17,30 @@ The M2 branch is stacked on M1. No upstream design approval or publication is cl
 | `npm pack --dry-run` | PASS (exit 0) |
 | `bun run test:smoke` | PASS (exit 0) |
 
-Tests  379 passed (379). 71/71 named mutants killed after a passing baseline.
-Fuzz seed 6049357: 20000 cases / 40000 conversions, now including successful conversion grammar.
+Tests: 827 passed (827). Mutation score: 100% (86/86 killed).
+Fuzz seed 6049357: 20000 cases / 40000 conversions, including M3 components and ground/junction boundaries.
 
-| Coverage axis | Actual | Covered / total |
+| Coverage | Actual | Covered / total |
 | --- | --- | --- |
-| statements | 100% | 846 / 846 |
-| branches | 100% | 652 / 652 |
-| functions | 100% | 98 / 98 |
-| lines | 100% | 597 / 597 |
+| statements | 100% | 885 / 885 |
+| branches | 100% | 717 / 717 |
+| functions | 100% | 100 / 100 |
+| lines | 100% | 622 / 622 |
 
-All source files remain included, with 100% per-file gates and no exclusions.
+Every source file is included; all four gates remain 100% per file with no exclusions.
 
-| Full public bundle, core external | M1 | M2 | M2 gate |
+| Whole public bundle, core external | M2 | M3 | Unchanged gate |
 | --- | --- | --- | --- |
-| Minified | 11833 B | 23141 B | measured |
-| Gzip | 4406 B | 8615 B | 9216 B |
-| Brotli-11 | 3942 B | 7762 B | 9216 B |
+| Minified | 23141 B | 25249 B | measured |
+| Gzip | 8615 B | 9174 B | 9216 B |
+| Brotli-11 | 7762 B | 8278 B | 9216 B |
 
-The size-script comment records the measured graph, component/label, emitter, geometry and verifier cost.
-The 12288 B gzip release ceiling is unchanged. No dependency or public type interface was added.
+M3 adds 559 B gzip / 516 B brotli and does not raise the M2 budget. The 12288 B release ceiling holds.
+No runtime/dev dependency or public type interface changed. The original two conformance outputs
+remain unchanged; added expectations use independent endpoint/placement templates and were inspected.
 
-Both original conformance documents are unchanged. New expectations were independently constructed or
-generated once and read in full; see m2-design.md. M3 components remain deferred to the next stacked PR.
-The browser-target smoke executes real successful conversion with standard TextEncoder/TextDecoder Web
-APIs in a VM without Node/DOM globals; it is not a real-browser engine integration test.
+The browser-target VM smoke performs successful conversion with standard TextEncoder/TextDecoder Web
+APIs and no Node/DOM globals. It is not a real-browser engine integration test. Known core battery glyph
+polarity and rose alias/theme behavior are documented in README and m3-design.md. Ground/junction body
+collisions are explicitly rejected rather than silently dropping junctions or inventing offsets.
+M4 website/publication/tagging is not performed.

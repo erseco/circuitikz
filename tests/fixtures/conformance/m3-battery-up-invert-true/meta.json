@@ -1,0 +1,21 @@
+{
+  "origin": "CircuiTikZ 226cd409d8b7625a42d0a084eef085e4e56f86d6 tex/pgfcircbipoles.tex, pgfcircmonopoles.tex; REQUIREMENTS.md M3",
+  "note": "Independent endpoint/placement template: direction, polarity and invert, with resistor and capacitor witnesses.",
+  "fence": "schemd bounds=\"160x760\" title=\"Converted CircuiTikZ circuit\"",
+  "connectivity": [
+    [
+      "R1.in"
+    ],
+    [
+      "R1.out",
+      "B1.negative"
+    ],
+    [
+      "B1.positive",
+      "C1.in"
+    ],
+    [
+      "C1.out"
+    ]
+  ]
+}
