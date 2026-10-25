@@ -103,7 +103,7 @@ The audit explains design decisions and the implementation sequence. All origina
 | R-8.4.4 | M2–M3 | conversion, m3 family/ground, verification and conformance suites | kind, alias, polarity, invert, label, ground and verification mutants |
 | R-8.5.1 | M1 | Measured M0→M1 size; documented 5 KiB gzip/brotli gates in size script | — |
 | R-8.5.2 | M1 | Measured M0→M1 size; documented 5 KiB gzip/brotli gates in size script | — |
-| R-8.5.3 | Below ceiling; not release-ready | M3 full entry 9458 B gzip / 8530 B brotli-11 against the 12288 B ceiling; M4 size review pending | — |
+| R-8.5.3 | Below ceiling; not release-ready | M3 full entry 9567 B gzip / 8620 B brotli-11 against the 12288 B ceiling; M4 size review pending | — |
 | R-8.5.4 | M3 | size script: 9.5 KiB gzip / 9 KiB brotli gates with measured comment | — |
 | R-8.6.1 | Enforced | packaging recursive inventory, disjoint classifications, exports; smoke JS/d.ts existence | — |
 | R-8.6.2 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 family tests and source-cited fixtures included |

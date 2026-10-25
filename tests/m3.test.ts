@@ -15,8 +15,7 @@ const families = [
 	['D', 'diode', 'D', 'anode', 'cathode', 'standard'], ['diode', 'diode', 'D', 'anode', 'cathode', 'standard'],
 	['empty diode', 'diode', 'D', 'anode', 'cathode', 'standard'], ['full diode', 'diode', 'D', 'anode', 'cathode', 'standard'],
 	['zD', 'diode', 'D', 'anode', 'cathode', 'zener'], ['leD', 'diode', 'D', 'anode', 'cathode', 'led'],
-	['nos', 'switch', 'S', 'in', 'out', 'spst'], ['ospst', 'switch', 'S', 'in', 'out', 'spst'],
-	['ncs', 'switch', 'S', 'in', 'out', 'spst'], ['cspst', 'switch', 'S', 'in', 'out', 'spst']
+	['nos', 'switch', 'S', 'in', 'out', 'spst'], ['ospst', 'switch', 'S', 'in', 'out', 'spst']
 ] as const;
 
 describe.each(families)('%s family', (alias, kind, prefix, initial, final, variant) => {
@@ -46,7 +45,7 @@ it.each(['battery', 'battery2'])('composes fixbatteries and invert for %s', (ali
 
 it('models earth ground as a unary terminal, including standalone and branch nodes', () => {
 	const isolated = converted('\\draw (0,0) node[ground]{};');
-	expect(isolated.source).toBe('ground:G1 "G1" at (80, 80) #slate [style=earth]\n');
+	expect(isolated.source).toBe('ground:G1 at (80, 80) #slate [style=earth]\n');
 	expect(isolated.parts[0]).toMatchObject({ kind: 'ground', groundStyle: 'earth' });
 	expect(isolated.nets).toEqual([['G1.in']]);
 	const result = converted('\\draw (0,0) to[R] (2,0) to[C] (4,0);\\draw (2,0) -- (2,-2) node[ground]{};');
@@ -92,6 +91,15 @@ it.each(['sD', 'lasD', 'pD', 'oncs', 'spdt', 'sground', 'ground', 'battery3'])('
 	expect(convertCircuitikz(wrap(`\\draw (0,0) to[${alias}] (2,0);`)).ok).toBe(false);
 });
 
+it.each(['ncs', 'cspst'])('rejects the normally closed switch %s instead of drawing it open', (name) => {
+	const message = `${name} is a normally closed switch, which @schemd/core cannot draw yet, and drawing it open would misstate the circuit; use nos or ospst only if the contact is meant to be open.`;
+	for (const option of [name, `${name}=S`, `${name},invert`]) {
+		const result = convertCircuitikz(wrap(`\\draw (0,0) to[${option}] (2,0);`));
+		expect(result).toMatchObject({ ok: false, source: undefined, sourceMap: [] });
+		expect(result.diagnostics).toEqual([{ code: 'unsupported', severity: 'error', message, line: 2, column: 16, endColumn: 16 + name.length }]);
+	}
+});
+
 it('rejects a ground body colliding with a mandatory junction instead of dropping the junction', () => {
 	const result = convertCircuitikz(wrap('\\draw (0,0) to[R] (2,0) node[ground]{} to[C] (4,0);'));
 	expect(result.ok).toBe(false);
@@ -128,7 +136,7 @@ it('preserves intended connectivity when independent components reorder and thei
 });
 
 it('keeps equivalent aliases byte-identical apart from source maps', () => {
-	for (const aliases of [['R', 'resistor', 'american resistor', 'european resistor'], ['C', 'capacitor'], ['L', 'inductor', 'cute inductor', 'european inductor', 'american inductor'], ['battery1', 'battery', 'battery2'], ['D', 'diode', 'empty diode', 'full diode'], ['nos', 'ncs', 'ospst', 'cspst']]) {
+	for (const aliases of [['R', 'resistor', 'american resistor', 'european resistor'], ['C', 'capacitor'], ['L', 'inductor', 'cute inductor', 'european inductor', 'american inductor'], ['battery1', 'battery', 'battery2'], ['D', 'diode', 'empty diode', 'full diode'], ['nos', 'ospst']]) {
 		const first = converted(`\\draw (0,0) to[${aliases[0]}=100] (2,0);`);
 		for (const alias of aliases.slice(1)) {
 			const result = converted(`\\draw (0,0) to[${alias}=100] (2,0);`);

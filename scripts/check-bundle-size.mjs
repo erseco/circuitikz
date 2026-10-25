@@ -30,7 +30,8 @@ const BUDGETS = [
 		   Review fixes (T-endpoint and dead-end wire rejection in the graph, subpath
 		   cycle and its rejection after to[...], recovery resync, empty option entries)
 		   measure 8615 -> 8892 B gzip on M2 and 9181 -> 9458 B gzip / 8278 -> 8530 B
-		   brotli on M3, so the gzip gate
+		   brotli on M3. Core 1.2.0 unlabelled emission and the closed-switch
+		   rejection bring M3 to 9567 B gzip / 8620 B brotli, so the gzip gate
 		   moves to 9.5 KiB; brotli keeps 9 KiB. Both stay below R-8.5.3's 12 KiB ceiling. */
 		maxGzipBytes: 9.5 * 1024,
 		maxBrotliBytes: 9 * 1024

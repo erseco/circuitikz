@@ -18,7 +18,8 @@ Core 1.1.0 source revision and semantic port names are pinned in implementation-
 | D, diode, empty diode, full diode | emptydiode/fulldiode and generated D aliases; cathode bar at res@right | diode; anode→cathode |
 | zD | emptyzdiode/fullzdiode shapes and generated zD aliases; right cathode bar | diode type=zener; anode→cathode |
 | leD | emptylediode/fulllediode, LED arrows and generated leD aliases; same diode cathode convention | diode type=led; anode→cathode |
-| nos, ospst, ncs, cspst | Named SPST shapes, normal/opening/closing depictions | switch type=spst; in→out; visual switch state is not simulated |
+| nos, ospst | Named SPST shapes, normally open | switch type=spst; in→out |
+| ncs, cspst | Named SPST shapes, normally closed | `unsupported` until core draws a closed contact (#2 §4) |
 | node[ground]{} | ground in pgfcircmonopoles.tex has three horizontal earth bars | ground style=earth, one in terminal |
 
 Invert in pgfcircpath.tex sets an inverted flag and a negative xscale. It is idempotent. Four
@@ -45,11 +46,10 @@ no new executable/style expansion facility is introduced.
 
 The required diode color `#rose` is a custom alias in core 1.1, not one of its six built-in tokens.
 The converter preserves and verifies that alias; a host should define its rose CSS color variable.
-Core's apparent battery glyph/semantic-port visual inconsistency remains an upstream limitation.
-No terminal is exchanged to disguise it. There is no electrical simulation of closed SPST contacts.
-Open question for the maintainer: core 1.1 exposes only `spst` and `spdt`, so `ncs`/`cspst` render
-as an open contact. R-4.4 requires that mapping; a closed variant in core, or rejecting the closed
-names, would need a contract change.
+Core draws the battery's long plate on the `negative` side; the maintainer confirmed this is a core
+bug (schemd/circuitikz#2 §3). No terminal is exchanged to disguise it. `ncs`/`cspst` are rejected
+with one `unsupported` diagnostic, because core has no closed contact and an open drawing would
+misstate the circuit (#2 §4); they return once core draws a closed switch.
 
 ## Quality evidence
 

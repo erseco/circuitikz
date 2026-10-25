@@ -1,5 +1,5 @@
 import type { Key, Span } from './ast.js';
-import { Diagnostics, presentation, syntax, unsupported } from './diagnostics.js';
+import { Diagnostics, closedSwitch, presentation, syntax, unsupported } from './diagnostics.js';
 import { labelOf } from './labels.js';
 
 export interface Definition {
@@ -24,7 +24,7 @@ const DEFINITIONS: readonly (readonly [readonly string[], Definition])[] = [
 	[['D', 'diode', 'empty diode', 'full diode'], { kind: 'diode', prefix: 'D', color: 'rose', first: 'anode', last: 'cathode', canonical: 'anode', variant: '' }],
 	[['zD'], { kind: 'diode', prefix: 'D', color: 'rose', first: 'anode', last: 'cathode', canonical: 'anode', variant: 'zener' }],
 	[['leD'], { kind: 'diode', prefix: 'D', color: 'rose', first: 'anode', last: 'cathode', canonical: 'anode', variant: 'led' }],
-	[['nos', 'ospst', 'ncs', 'cspst'], { kind: 'switch', prefix: 'S', color: 'emerald', first: 'in', last: 'out', canonical: 'in', variant: 'spst' }],
+	[['nos', 'ospst'], { kind: 'switch', prefix: 'S', color: 'emerald', first: 'in', last: 'out', canonical: 'in', variant: 'spst' }],
 	[['short'], { kind: 'wire', prefix: '', color: '', first: '', last: '', canonical: '', variant: '' }]
 ];
 
@@ -43,6 +43,7 @@ export function partOf(keys: readonly Key[], source: string, fixBatteries: boole
 	let label: string | undefined;
 	let labelled = false;
 	let invert = false;
+	let closed = false;
 	for (const key of keys) {
 		const found = DEFINITIONS.find(([names]) => names.includes(key.name))?.[1];
 		let labelKey = false;
@@ -54,6 +55,8 @@ export function partOf(keys: readonly Key[], source: string, fixBatteries: boole
 			labelKey = true;
 			if (key.name !== 'l') presentation(diagnostics, key.name, key.span);
 		} else if (key.name === 'invert' && key.value === undefined) invert = true;
+		// R-4.4.1 / #2 §4: core 1.x has no closed contact, so these are rejected, never drawn open.
+		else if (key.name === 'ncs' || key.name === 'cspst') { closedSwitch(diagnostics, key.name, key.span); closed = true; }
 		else if (!presentationKey(key, diagnostics)) unsupported(diagnostics, `Option ${key.name}`, key.span);
 		if (labelKey) {
 			if (labelled) syntax(diagnostics, 'exactly one label-bearing option', key.span);
@@ -64,7 +67,7 @@ export function partOf(keys: readonly Key[], source: string, fixBatteries: boole
 			}
 		}
 	}
-	if (definition === undefined) { syntax(diagnostics, 'one supported component kind in to[...]', span); return undefined; }
+	if (definition === undefined) { if (!closed) syntax(diagnostics, 'one supported component kind in to[...]', span); return undefined; }
 	if (definition.kind === 'wire' && (labelled || invert)) unsupported(diagnostics, 'Labels or invert on short wires', span);
 	const inverted = invert !== (definition.kind === 'source' && fixBatteries);
 	return { ...definition, label, inverted };

@@ -1,6 +1,6 @@
-resistor:R1 "R1" at (80, 180) #amber [orientation=down]
-diode:D1 "D1" at (80, 380) #rose [orientation=up]
-capacitor:C1 "C1" at (80, 580) #cyan [orientation=down]
+resistor:R1 at (80, 180) #amber [orientation=down]
+diode:D1 at (80, 380) #rose [orientation=up]
+capacitor:C1 at (80, 580) #cyan [orientation=down]
 
 R1.out -> D1.cathode #amber [ortho]
 D1.anode -> C1.in #rose [ortho]

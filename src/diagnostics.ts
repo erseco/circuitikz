@@ -51,6 +51,10 @@ export function reference(d: Diagnostics, name: string, duplicate: boolean, span
 		: `Coordinate ${name} is not defined; define it before using it.`, span);
 }
 
+export function closedSwitch(d: Diagnostics, name: string, span: Span): void {
+	d.add('unsupported', `${name} is a normally closed switch, which @schemd/core cannot draw yet, and drawing it open would misstate the circuit; use nos or ospst only if the contact is meant to be open.`, span);
+}
+
 export function presentation(d: Diagnostics, key: string, span: Span): void {
 	d.add('unsupported', `Presentation option ${key} was ignored; schemd draws its own style.`, span, true);
 }

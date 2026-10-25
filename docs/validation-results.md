@@ -54,12 +54,18 @@ the unchanged lockfile; CI runs the same gates on Node 24. Every mandatory comma
 
 | Measure | Result |
 | --- | --- |
-| Tests | 831 passed |
-| Mutants | 94/94 killed |
-| Coverage (stmts / branches / funcs / lines) | 914/914, 738/738, 104/104, 638/638, 100% per file |
-| Size | 25951 B minified, 9458 B gzip, 8530 B brotli-11 |
+| Tests | 812 passed |
+| Mutants | 98/98 killed |
+| Coverage (stmts / branches / funcs / lines) | 920/920, 744/744, 105/105, 641/641, 100% per file |
+| Size | 26231 B minified, 9567 B gzip, 8620 B brotli-11 |
 
-The merged M1/M2 fixes move gzip past the 9 KiB gate (9181 -> 9458 B). The gzip gate moves to
+The merged M1/M2 fixes move gzip past the 9 KiB gate (9181 -> 9567 B). The gzip gate moves to
 9.5 KiB with the measurement recorded in `scripts/check-bundle-size.mjs`; brotli keeps 9 KiB and
 both stay below the 12288 B release ceiling. The vertex-to-canvas mapping is now one `canvas()`
-helper shared by the emitter and the placement preflight. 78 conformance and 63 rejection fixtures.
+helper shared by the emitter and the placement preflight. 76 conformance and 64 rejection fixtures.
+
+After schemd/circuitikz#2 was settled: core `^1.2.0` with unlabelled parts emitted without a label
+(46 expected documents checked to differ only by the removed `"ID"`), and `ncs`/`cspst` rejected with
+one `unsupported` diagnostic (#2 §4). Their two conformance fixtures became the `closed-switch`
+rejection fixture, and the alias tests now cover only `nos`/`ospst`. 812 tests (19 fewer, because the
+closed-switch family rows went away and one rejection test took their place).

@@ -39,7 +39,8 @@ and one-based columns count UTF-16 code units, with a tab counting as one column
 | `battery1`, `battery`, `battery2` | Battery source, `positive` → `negative` by default |
 | `D`, `diode`, `empty diode`, `full diode` | Diode, `anode` → `cathode` |
 | `zD`, `leD` | Zener / LED diode, `anode` → `cathode` |
-| `nos`, `ospst`, `ncs`, `cspst` | SPST switch, `in` → `out` |
+| `nos`, `ospst` | SPST switch, `in` → `out` |
+| `ncs`, `cspst` | `unsupported` until core draws a closed switch |
 | `node[ground]{}` on a draw path | Earth ground with one `in` terminal |
 | `short` | Wire; labels and invert on wires are rejected |
 
@@ -129,9 +130,9 @@ or new development dependencies. Bun **1.4.4** is pinned; core `^1.2.0` is the s
 parts are emitted without a label (R-4.5.4). Core draws its battery glyph with the long plate on the
 `negative` side, so a battery is drawn mirrored until core fixes it; the output keeps **netlist**
 polarity and never swaps terminals to compensate (R-4.4.3). `#rose` is a core custom
-color alias; hosts should define the corresponding rose CSS variable. Closed/open SPST states are
-not electrically simulated, and `ncs`/`cspst` are drawn as core's open `spst` symbol: core 1.1 has
-only `spst` and `spdt` switch variants, and R-4.4 maps all four names to `switch [type=spst]`.
+color alias; hosts should define the corresponding rose CSS variable. Switch states are not
+electrically simulated. `ncs` and `cspst` are rejected: core has only `spst` and `spdt`, and drawing a
+normally closed switch open would misstate the circuit (schemd/circuitikz#2 §4).
 
 Ground uses the graph point as its unary terminal and normalized symbol center. If a mandatory
 junction coincides with the ground body, conversion reports a geometry collision. Place the ground
