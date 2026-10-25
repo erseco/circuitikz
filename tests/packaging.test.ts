@@ -14,14 +14,15 @@ import manifest from '../package.json';
  * If unsure, a module is internal. Promoting later is easy; un-promoting is a
  * breaking change.
  */
-const INTERNAL_MODULES = new Set(['index', 'topology']);
+const INTERNAL_MODULES = new Set(['topology']);
 
-const sourceModules = Object.keys(import.meta.glob('../src/*.ts'))
+const sourceModules = Object.keys(import.meta.glob('../src/**/*.ts'))
 	.map((path) => path.replace('../src/', '').replace(/\.ts$/, ''))
 	.sort();
 
 const subpaths = Object.keys(manifest.exports).filter((key) => key !== '.');
 const exportedModules = new Set(subpaths.map((key) => key.replace('./', '')));
+const publicModules = new Set(['index', ...exportedModules]);
 
 describe('package exports', () => {
 	it('finds the source modules it is meant to police', () => {
@@ -30,8 +31,12 @@ describe('package exports', () => {
 	});
 
 	it('gives every public source module an importable subpath', () => {
-		const missing = sourceModules.filter((module) => !INTERNAL_MODULES.has(module) && !exportedModules.has(module));
+		const missing = sourceModules.filter((module) => !INTERNAL_MODULES.has(module) && !publicModules.has(module));
 		expect(missing, `public modules with no exports entry: ${missing.join(', ')}`).toEqual([]);
+	});
+
+	it('classifies a module as public or internal, never both', () => {
+		expect([...publicModules].filter((module) => INTERNAL_MODULES.has(module))).toEqual([]);
 	});
 
 	it('lists no internal module that does not exist', () => {

@@ -16,6 +16,10 @@
  *
  * A mutant no input can tell apart from the original is equivalent: remove it
  * and say why in the pull request.
+ *
+ * A kill is an assertion failing. The suites must pass before any mutant is
+ * applied, and a run that fails without a failing test (a file that cannot
+ * load, a crash, a timeout) stops the gate instead of counting as a kill.
  */
 import { cp, mkdtemp, readdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -122,6 +126,24 @@ try {
 	await symlink(join(root, 'node_modules'), join(sandbox, 'node_modules'), 'dir');
 	const vitest = join(root, 'node_modules', 'vitest', 'vitest.mjs');
 	const survivors = [];
+	const reportPath = join(sandbox, 'mutation-report.json');
+	const run = async (tests) => {
+		await rm(reportPath, { force: true });
+		const result = spawnSync(process.execPath, [vitest, 'run', ...tests, '--reporter=json', `--outputFile=${reportPath}`], {
+			cwd: sandbox,
+			env: { ...process.env, FORCE_COLOR: '0' },
+			encoding: 'utf8',
+			timeout: 45_000
+		});
+		if (result.error !== undefined) throw result.error;
+		const report = JSON.parse(await readFile(reportPath, 'utf8'));
+		if (report.numTotalTests === 0 || result.status !== 0 && report.numFailedTests === 0) {
+			throw new Error(`Mutation run failed without an assertion failure: ${result.stdout}${result.stderr}`);
+		}
+		return result;
+	};
+	const baseline = await run([...new Set(mutants.flatMap((mutant) => mutant.tests))]);
+	if (baseline.status !== 0) throw new Error('Mutation baseline is not green; fix the tests first.');
 
 	for (const mutant of mutants) {
 		const path = join(sandbox, mutant.file);
@@ -131,14 +153,9 @@ try {
 			throw new Error(`Mutation target must occur exactly once: ${mutant.name}`);
 		}
 		await writeFile(path, original.replace(mutant.from, mutant.to));
-		const result = spawnSync(process.execPath, [vitest, 'run', ...mutant.tests], {
-			cwd: sandbox,
-			env: { ...process.env, FORCE_COLOR: '0' },
-			encoding: 'utf8',
-			timeout: 45_000
-		});
-		await writeFile(path, original);
-		if (result.error !== undefined && result.error.code !== 'ETIMEDOUT') throw result.error;
+		let result;
+		try { result = await run(mutant.tests); }
+		finally { await writeFile(path, original); }
 		if (result.status === 0) {
 			survivors.push({ mutant, output: `${result.stdout}${result.stderr}` });
 			console.error(`SURVIVED  ${mutant.name}`);
