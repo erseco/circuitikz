@@ -13,7 +13,8 @@ it('checks the junction budget at the ceiling and before adding one more', () =>
 		}
 		const d = new Diagnostics(false), circuit = buildCircuit(segments, span, d);
 		if (extra === 0) {
-			expect(d.items).toEqual([]);
+			// The stubs are dead ends, which is reported separately; the budget itself holds.
+			expect(d.items.filter((item) => item.code === 'limit')).toEqual([]);
 			expect(circuit?.junctions).toHaveLength(512);
 			expect(circuit?.expected).toEqual([]);
 		} else {

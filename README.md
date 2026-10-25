@@ -60,7 +60,8 @@ Every nonblank output line has a source-map entry, including connection lines.
 Vertices coincide only at exactly equal coordinates. Crossings do not create electrical connections.
 Positive-length collinear overlaps are errors. A source-ordered wire spanning forest removes redundant
 cycle edges. Zero-length wire steps draw no segment and do not inflate junction degree. Real vertices
-with three or more edge ends become junctions. Wire geometry with no terminal or junction is rejected.
+with three or more edge ends become junctions. Wire geometry with no terminal or junction is rejected, as is a wire with an unconnected end and an
+endpoint that lands inside another segment (split that segment to make a junction).
 Unconnected component terminals are preserved as singleton nets rather than being omitted.
 
 ### Labels and options

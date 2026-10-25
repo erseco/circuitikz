@@ -57,8 +57,8 @@ The audit explains design decisions and the implementation sequence. All origina
 | R-5.1.3 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 families remain deferred |
 | R-5.1.4 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 families remain deferred |
 | R-5.1.5 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 families remain deferred |
-| R-5.1.6 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 families remain deferred |
-| R-5.1.7 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 families remain deferred |
+| R-5.1.6 | M2 | conversion dead-end tests; wire-orphan and wire-dead-end rejections | dead-end wires are rejected; dead-end wires are rejected only at single edge ends |
+| R-5.1.7 | M2 | conversion T-junction test; segments-overlap and t-junction rejections | positive-length overlaps are rejected; an endpoint inside another segment is a geometry error; overlaps suppress duplicate interior diagnostics |
 | R-5.2.1 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 families remain deferred |
 | R-5.2.2 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 families remain deferred |
 | R-5.2.3 | M2 | conversion, conformance, graph, verification and property suites; built smoke | graph/emitter/oracle mutants; M3 families remain deferred |

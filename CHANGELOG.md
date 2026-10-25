@@ -19,6 +19,11 @@ Written for someone deciding whether to upgrade. Sections: `Fixed`, `Added`, `Re
   connection-only behavior without omitting any input terminal.
 - Conflicting kinds/labels are rejected; repeated invert is idempotent. Zero-length wire steps do not
   inflate junction degree. Unsupported geometry is diagnosed before output verification.
+- An endpoint strictly inside another segment (a T without a shared vertex) is a `geometry` error
+  instead of a silent non-connection; split the segment at the T to get a junction.
+- A wire with an unconnected end (a stub off a terminal, or a junction with only stubs) is
+  `unsupported` instead of being silently dropped from the output, because schemd connections are
+  terminal-to-terminal. Leaves left by dropped cycle edges are not dead ends.
 - The full-entry size gates are measured and raised to 9 KiB for M2; the 12 KiB release ceiling holds.
 
 ### Added (M1)

@@ -1,7 +1,7 @@
 import { SCHEMATIC_LIMITS } from '@schemd/core';
 import type { Point, Span } from './ast.js';
-import type { Circuit, Connection, Junction, Part, Segment } from './circuit.js';
-import { Diagnostics, componentGeometry, limit, overlap, unsupported } from './diagnostics.js';
+import type { Circuit, Connection, Junction, Part, Segment, Vertex } from './circuit.js';
+import { Diagnostics, componentGeometry, interior, limit, overlap, unsupported } from './diagnostics.js';
 import { LIMITS, MARGIN } from './limits.js';
 import { canonical } from './topology.js';
 
@@ -23,9 +23,11 @@ class Nets {
 }
 
 /** Group collinear segments by primitive integer direction and offset, then
- * sweep intervals. Crossings never create vertices or electrical connections. */
-function checkOverlaps(segments: readonly Segment[], minX: number, minY: number, diagnostics: Diagnostics): void {
+ * sweep intervals. Crossings never create vertices or electrical connections,
+ * and an endpoint strictly inside another segment (a T without a shared vertex) is an error. */
+function checkOverlaps(segments: readonly Segment[], vertices: readonly Vertex[], minX: number, minY: number, diagnostics: Diagnostics): void {
 	const groups = new Map<string, { low: number; high: number; span: Span }[]>();
+	const directions = new Map<string, readonly [number, number]>();
 	for (const segment of segments) {
 		let dx = segment.to.x - segment.from.x, dy = segment.to.y - segment.from.y;
 		if (dx === 0 && dy === 0) continue;
@@ -33,6 +35,7 @@ function checkOverlaps(segments: readonly Segment[], minX: number, minY: number,
 		while (b !== 0) { const next = a % b; a = b; b = next; }
 		dx /= a; dy /= a;
 		if (dx < 0 || dx === 0 && dy < 0) { dx = -dx; dy = -dy; }
+		directions.set(`${dx},${dy}`, [dx, dy]);
 		const key = `${dx},${dy},${dx * (segment.from.y - minY) - dy * (segment.from.x - minX)}`;
 		const start = dx === 0 ? segment.from.y : segment.from.x;
 		const end = dx === 0 ? segment.to.y : segment.to.x;
@@ -40,13 +43,23 @@ function checkOverlaps(segments: readonly Segment[], minX: number, minY: number,
 		if (group === undefined) { group = []; groups.set(key, group); }
 		group.push({ low: Math.min(start, end), high: Math.max(start, end), span: segment.span });
 	}
+	let overlapping = false;
 	for (const group of groups.values()) {
 		group.sort((a, b) => a.low - b.low || a.span.start - b.span.start);
 		let high = group[0]!.high;
 		for (let i = 1; i < group.length; i += 1) {
 			const item = group[i]!;
-			if (item.low < high) overlap(diagnostics, item.span);
+			if (item.low < high) { overlap(diagnostics, item.span); overlapping = true; }
 			high = Math.max(high, item.high);
+		}
+	}
+	// An overlap is already ambiguous geometry; do not report its endpoints twice.
+	// ponytail: one pass over the vertices per distinct segment direction; axis-aligned circuits have two.
+	if (!overlapping) for (const [dx, dy] of directions.values()) {
+		for (const v of vertices) {
+			const group = groups.get(`${dx},${dy},${dx * (v.y - minY) - dy * (v.x - minX)}`);
+			const at = dx === 0 ? v.y : v.x;
+			if (group?.some((item) => item.low < at && at < item.high)) interior(diagnostics, `(${v.x},${v.y})`, v.span);
 		}
 	}
 }
@@ -67,6 +80,7 @@ export function buildCircuit(segments: readonly Segment[], span: Span, diagnosti
 		return id;
 	};
 	const parts: Part[] = [];
+	const partAt = new Map<number, Part>();
 	const counts = new Map<string, number>();
 	const links: Link[] = [];
 	for (const [index, segment] of segments.entries()) {
@@ -85,8 +99,9 @@ export function buildCircuit(segments: readonly Segment[], span: Span, diagnosti
 		}
 		const count = (counts.get(spec.prefix) ?? 0) + 1;
 		counts.set(spec.prefix, count);
-		parts.push({ id: `${spec.prefix}${count}`, spec, from, to, first: spec.inverted ? spec.last : spec.first,
-			last: spec.inverted ? spec.first : spec.last, span: segment.span });
+		const part = { id: `${spec.prefix}${count}`, spec, from, to, first: spec.inverted ? spec.last : spec.first,
+			last: spec.inverted ? spec.first : spec.last, span: segment.span };
+		parts.push(part); partAt.set(index, part);
 	}
 	let minX = 0, maxX = 0, minY = 0, maxY = 0;
 	if (vertices.length > 0) {
@@ -97,7 +112,7 @@ export function buildCircuit(segments: readonly Segment[], span: Span, diagnosti
 	if (width > SCHEMATIC_LIMITS.maximumBound || height > SCHEMATIC_LIMITS.maximumBound) {
 		limit(diagnostics, 'canvas extent', SCHEMATIC_LIMITS.maximumBound - 2 * MARGIN, span); return undefined;
 	}
-	checkOverlaps(segments, minX, minY, diagnostics);
+	checkOverlaps(segments, vertices, minX, minY, diagnostics);
 	const junctions: Junction[] = [];
 	const anchors = new Map<number, Anchor>();
 	for (const [id, v] of vertices.entries()) {
@@ -109,11 +124,8 @@ export function buildCircuit(segments: readonly Segment[], span: Span, diagnosti
 	}
 	if (parts.length + junctions.length === 0) unsupported(diagnostics, 'A circuit without components or junctions', span);
 	const expected = new Map<number, string[]>();
-	const partBySpan = new Map(parts.map((part) => [part.span.start, part]));
 	let extra = vertices.length;
-	for (const [index, segment] of segments.entries()) {
-		const part = partBySpan.get(segment.span.start);
-		if (part === undefined) continue;
+	for (const [index, part] of partAt) {
 		for (const [at, port, start] of [[part.from, part.first, true], [part.to, part.last, false]] as const) {
 			const terminal = `${part.id}.${port}`, root = nets.find(at);
 			let terminals = expected.get(root);
@@ -144,7 +156,14 @@ export function buildCircuit(segments: readonly Segment[], span: Span, diagnosti
 				next = adjacency[at]!.find((id) => id !== next)!;
 			}
 			const other = anchors.get(at);
-			if (other === undefined) continue;
+			// A wire chain that stops off an anchor is a dead end schemd cannot draw;
+			// a bare terminal link there is an open terminal and stays a singleton net.
+			if (other === undefined) {
+				const wire = chain.filter((item) => item.edge.wire).at(-1);
+				// Degree counts every edge end, so a forest leaf left by a dropped cycle edge is not a dead end.
+				if (wire !== undefined && vertices[at]!.degree === 1 && hasAnchor.has(nets.find(at))) unsupported(diagnostics, 'A wire with an unconnected end', wire.edge.span);
+				continue;
+			}
 			const wires = chain.filter((item) => item.edge.wire);
 			let forward: boolean, order: number, source: Span;
 			if (wires.length > 0) {
