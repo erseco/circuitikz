@@ -30,9 +30,58 @@ import { spawnSync } from 'node:child_process';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 /* Type declarations and re-exports: nothing a mutant could change. */
-const EXEMPT = new Set(['src/index.ts', 'src/types.ts']);
+const EXEMPT = new Set(['src/ast.ts', 'src/index.ts', 'src/types.ts']);
 
 const mutants = [
+	{
+		name: 'comments end at CR as well as LF',
+		file: 'src/lexer.ts',
+		from: "while (cursor < source.length && source[cursor] !== '\\r' && source[cursor] !== '\\n')",
+		to: "while (cursor < source.length && source[cursor] !== '\\n')",
+		tests: ['tests/lexer.test.ts']
+	},
+	{
+		name: 'columns count UTF-16 units',
+		file: 'src/lexer.ts',
+		from: 'column += cursor - start;',
+		to: 'column += [...source.slice(start, cursor)].length;',
+		tests: ['tests/lexer.test.ts']
+	},
+	{
+		name: 'CRLF is one newline',
+		file: 'src/lexer.ts',
+		from: "c === '\\r' && source[cursor + 1] === '\\n' ? 2 : 1",
+		to: '1',
+		tests: ['tests/lexer.test.ts']
+	},
+	{
+		name: 'escaped percent does not begin a comment',
+		file: 'src/lexer.ts',
+		from: "kind = 'command';",
+		to: "if (source[cursor] === '%') { cursor = source.length; } kind = 'command';",
+		tests: ['tests/lexer.test.ts']
+	},
+	{
+		name: 'brace budget is checked before further scanning',
+		file: 'src/lexer.ts',
+		from: 'depth === LIMITS.braceDepth',
+		to: 'depth > LIMITS.braceDepth',
+		tests: ['tests/lexer.test.ts']
+	},
+	{
+		name: 'the brace nesting ceiling is 32',
+		file: 'src/limits.ts',
+		from: 'braceDepth: 32',
+		to: 'braceDepth: 33',
+		tests: ['tests/lexer.test.ts']
+	},
+	{
+		name: 'diagnostics sort by line then column',
+		file: 'src/diagnostics.ts',
+		from: 'a.line - b.line || a.column - b.column',
+		to: 'b.line - a.line || a.column - b.column',
+		tests: ['tests/lexer.test.ts']
+	},
 	{
 		name: 'a junction is recognised by its kind',
 		file: 'src/topology.ts',
