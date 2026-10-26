@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Questions about schemd itself
-    url: https://github.com/schemd/core/issues
-    about: The compiler, its DSL, and its diagnostics live in schemd/core.
+  - name: Usage and design questions
+    url: https://github.com/schemd/core/discussions
+    about: Ask the Schemd community before opening a feature or defect report.
+  - name: Private vulnerability reports
+    url: https://github.com/schemd/circuitikz/security/advisories/new
+    about: Report security concerns privately, following SECURITY.md.

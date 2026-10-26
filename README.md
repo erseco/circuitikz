@@ -81,3 +81,8 @@ bun run release:check
 
 [Requirements](./REQUIREMENTS.md) · [Contributing](./CONTRIBUTING.md) · [Changelog](./CHANGELOG.md) ·
 [schemd/core#7](https://github.com/schemd/core/issues/7) · [MIT](./LICENSE)
+
+## Community
+
+[Contributing](./CONTRIBUTING.md) · [Support](./SUPPORT.md) · [Security](./SECURITY.md) ·
+[Code of Conduct](./CODE_OF_CONDUCT.md) · [Maintainers](./MAINTAINERS.md)
