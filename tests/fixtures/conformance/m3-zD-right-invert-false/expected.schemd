@@ -1,0 +1,6 @@
+resistor:R1 at (180, 80) #amber
+diode:D1 at (380, 80) #rose [type=zener]
+capacitor:C1 at (580, 80) #cyan
+
+R1.out -> D1.anode #amber [ortho]
+D1.cathode -> C1.in #rose [ortho]

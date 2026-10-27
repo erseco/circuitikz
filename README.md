@@ -1,7 +1,7 @@
 # @schemd/circuitikz
 
 Convert a strict CircuiTikZ subset to Schemd DSL, preserving component terminals, labels and nets.
-**Status: M2 implemented; M3 component families are not available yet.**
+**Status: M1–M3 implemented in stacked review PRs.**
 
 ```ts
 import { convertCircuitikz } from '@schemd/circuitikz';
@@ -36,10 +36,15 @@ and one-based columns count UTF-16 code units, with a tab counting as one column
 | `R`, `resistor`, `american resistor`, `european resistor` | Resistor, `in` → `out` |
 | `C`, `capacitor` | Capacitor, `in` → `out` |
 | `L`, `inductor`, `american inductor`, `cute inductor`, `european inductor` | Inductor, `in` → `out` |
-| `battery1` | Battery source, `positive` → `negative` by default |
+| `battery1`, `battery`, `battery2` | Battery source, `positive` → `negative` by default |
+| `D`, `diode`, `empty diode`, `full diode` | Diode, `anode` → `cathode` |
+| `zD`, `leD` | Zener / LED diode, `anode` → `cathode` |
+| `nos`, `ospst` | SPST switch, `in` → `out` |
+| `ncs`, `cspst` | `unsupported` until core draws a closed switch |
+| `node[ground]{}` on a draw path | Earth ground with one `in` terminal |
 | `short` | Wire; labels and invert on wires are rejected |
 
-Environment `fixbatteries` reverses battery1 polarity. `invert` reverses a component's terminal order;
+Environment `fixbatteries` reverses all three supported battery polarities. `invert` reverses a component's terminal order;
 repeating invert is idempotent, matching CircuiTikZ. Component orientation is derived from semantic
 ports and the path direction. Diagonal, zero-length or sub-0.84-unit component segments are errors.
 Body collisions and labels outside the fixed canvas are reported as geometry errors before emission.
@@ -75,14 +80,14 @@ Greek letters in core's allowlist, `\Omega`, `\mu`, and spacing `\,`, `\;`, `\ `
 are rejected instead of being printed literally. Labels are validated before DSL quoting.
 
 Only explicitly enumerated presentation keys are ignored: `mirror`, `thick`, `thin`, `dashed`,
-`color=`, `line width=`, `-*`, `*-`, `*-*`, `-o`, `o-`, `o-o`. Each produces a warning; `strict: true`
+`color=`, `line width=`, `-*`, `*-`, `*-*`, `-o`, `o-`, `o-o`, and source-defined circle/diamond/rectjoinfill endpoint combinations listed in m3-design.md. Each produces a warning; `strict: true`
 escalates it to an error. Unknown keys, voltage/current/flow annotations and component naming keys
 are errors. Environment/draw options use the same pure-presentation list, plus environment fixbatteries.
 Empty option entries such as `[]` or `[R,]` are ignored, as pgfkeys does.
 
 Unsupported: whole LaTeX documents, macros/expansion, scopes, styles, loops, arbitrary nodes, polar
 coordinates, anchors, coordinate calculations, unsupported units, arcs/curves/shapes, other sources,
-transistors and op-amps. M3 batteries, diodes, switches and ground are still rejected in this milestone.
+transistors and op-amps. Unsupported diode/switch/ground variants are rejected, never approximated.
 
 ## API
 
@@ -124,7 +129,16 @@ Node.js 24+, strict TypeScript, ESM `.js` specifiers, browser/worker-compatible 
 or new development dependencies. Bun **1.4.4** is pinned; core `^1.2.0` is the sole peer, because unlabelled
 parts are emitted without a label (R-4.5.4). Core draws a battery's long plate on its `positive`
 terminal from 1.3.1 (schemd/core#11); 1.2.x and 1.3.0 draw the plates the wrong way round. The output
-keeps **netlist** polarity either way and never swaps terminals to compensate (R-4.4.3).
+keeps **netlist** polarity either way and never swaps terminals to compensate (R-4.4.3). `#rose` is a
+core custom color alias; hosts should define the corresponding rose CSS variable. Switch states are not
+electrically simulated. `ncs` and `cspst` are rejected: core has only `spst` and `spdt`, and drawing a
+normally closed switch open would misstate the circuit (schemd/circuitikz#2 §4).
+
+Ground uses the graph point as its unary terminal and normalized symbol center. If a mandatory
+junction coincides with the ground body, conversion reports a geometry collision. Place the ground
+at the end of a short wire from the junction; this preserves the net and avoids overlapping bodies.
+See the ground-branch conformance fixture. Arbitrary ground nodes, body text, invert and alternate
+ground styles are rejected.
 
 ```sh
 bun ci
@@ -145,6 +159,6 @@ records minimized failures, checks the built package under Node 24, and runs on 
 The browser-target bundle smoke runs in a VM with standard TextEncoder/TextDecoder Web APIs and
 without Node/DOM globals. It is not a real-browser integration run. No releases or tags are created.
 
-[Requirements](REQUIREMENTS.md) · [Contributing](CONTRIBUTING.md) · [M2 design](docs/m2-design.md) ·
+[Requirements](REQUIREMENTS.md) · [Contributing](CONTRIBUTING.md) · [M2 design](docs/m2-design.md) · [M3 semantics](docs/m3-design.md) ·
 [Traceability](docs/requirements-traceability.md) · [Validation](docs/validation-results.md) ·
 [Initial audit](docs/implementation-audit.md) · [Changelog](CHANGELOG.md)

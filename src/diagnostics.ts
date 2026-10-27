@@ -51,6 +51,10 @@ export function reference(d: Diagnostics, name: string, duplicate: boolean, span
 		: `Coordinate ${name} is not defined; define it before using it.`, span);
 }
 
+export function closedSwitch(d: Diagnostics, name: string, span: Span): void {
+	d.add('unsupported', `${name} is a normally closed switch, which @schemd/core cannot draw yet, and drawing it open would misstate the circuit; use nos or ospst only if the contact is meant to be open.`, span);
+}
+
 export function presentation(d: Diagnostics, key: string, span: Span): void {
 	d.add('unsupported', `Presentation option ${key} was ignored; schemd draws its own style.`, span, true);
 }
@@ -68,7 +72,7 @@ export function overlap(d: Diagnostics, span: Span): void {
 }
 
 export function interior(d: Diagnostics, point: string, span: Span): void {
-	geometry(d, `Endpoint ${point} lies inside another segment (hundredths of a TikZ unit), which makes no connection; split that segment at the point or move the endpoint.`, span);
+	geometry(d, `Endpoint ${point} lies inside another segment and connects to nothing; split that segment there or move the endpoint.`, span);
 }
 
 export function internal(d: Diagnostics, reason: string, span: Span): void {

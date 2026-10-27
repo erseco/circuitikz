@@ -1,6 +1,6 @@
 import { resolveCoordinates } from './coordinates.js';
 import { Diagnostics, internal, limit, unsupported } from './diagnostics.js';
-import { presentationKey, partOf } from './components.js';
+import { presentationKey, partOf, groundOf } from './components.js';
 import { checkPlacement } from './geometry.js';
 import { emit } from './emitter.js';
 import { buildCircuit } from './graph.js';
@@ -41,7 +41,7 @@ export function convertCircuitikz(source: string, options?: ConvertCircuitikzOpt
 					const segments: Segment[] = [];
 					const fixed = tree.keys.some((key) => key.name === 'fixbatteries' && key.value === undefined);
 					for (const segment of resolved) {
-						const spec = segment.operation === 'to' ? partOf(segment.keys, source, fixed, segment.span, diagnostics) : undefined;
+						const spec = segment.operation === 'ground' ? groundOf(segment.keys, segment.span, diagnostics) : segment.operation === 'to' ? partOf(segment.keys, source, fixed, segment.span, diagnostics) : undefined;
 						if (segment.operation === '|-' || segment.operation === '-|') {
 							const corner = segment.operation === '|-' ? { x: segment.from.x, y: segment.to.y } : { x: segment.to.x, y: segment.from.y };
 							segments.push({ ...segment, to: corner, toSpan: segment.span, spec });

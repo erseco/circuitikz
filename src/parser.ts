@@ -29,9 +29,14 @@ class Parser {
 	private boundary(): boolean { return this.token.kind === 'eof' || this.delimiter('\\end'); }
 
 	/** Skip exactly one broken statement, respecting braces and environment end. */
-	private recover(): void {
+	private recover(start: number): void {
 		if (this.synced) { this.synced = false; return; }
 		let depth = 0;
+		for (let i = start; i < this.cursor; i += 1) {
+			if (this.tokens[i]!.value === '{') depth += 1;
+			else if (this.tokens[i]!.value === '}') depth = Math.max(0, depth - 1);
+		}
+		if (this.tokens[this.cursor - 1]!.value === ';' && depth === 0) return;
 		while (!this.boundary()) {
 			const token = this.take();
 			if (token.value === '{') depth += 1;
@@ -104,6 +109,11 @@ class Parser {
 		return false;
 	}
 
+	private component(span: Span): boolean {
+		if (this.components === LIMITS.components) { limit(this.diagnostics, 'components', LIMITS.components, span); return false; }
+		this.components += 1; return true;
+	}
+
 	private statement(): Statement | undefined {
 		const start = this.take();
 		if (start.value === '\\coordinate') {
@@ -122,6 +132,13 @@ class Parser {
 		while (!this.boundary() && !this.at(';')) {
 			const operation = this.token;
 			if (elements.length === LIMITS.pathElements) { limit(this.diagnostics, 'path elements per statement', LIMITS.pathElements, operation); return undefined; }
+			if (this.accept('node')) {
+				if (!this.at('[')) { unsupported(this.diagnostics, 'node without [ground]{}', operation); return undefined; }
+				const nodeKeys = this.options();
+				if (nodeKeys === undefined || !this.expect('{') || !this.expect('}') || !this.component(operation)) return undefined;
+				elements.push({ kind: 'ground', keys: nodeKeys, span: through(operation, this.tokens[this.cursor - 1]!) });
+				continue;
+			}
 			if (this.accept('coordinate')) {
 				const name = this.name();
 				if (name === undefined) return undefined;
@@ -146,8 +163,7 @@ class Parser {
 				if (parsed === undefined) return undefined;
 				componentKeys = parsed;
 				if (!parsed.some((key) => key.name === 'short')) {
-					if (this.components === LIMITS.components) { limit(this.diagnostics, 'components', LIMITS.components, operation); return undefined; }
-					this.components += 1;
+					if (!this.component(operation)) return undefined;
 				}
 			}
 			const operationSpan = through(operation, this.tokens[this.cursor - 1]!);
@@ -170,8 +186,9 @@ class Parser {
 		while (!this.boundary()) {
 			if (count === LIMITS.statements) { limit(this.diagnostics, 'statements', LIMITS.statements, this.token); return undefined; }
 			count += 1;
+			const start = this.cursor;
 			const statement = this.statement();
-			if (statement === undefined) this.recover();
+			if (statement === undefined) this.recover(start);
 			else statements.push(statement);
 		}
 		if (!this.delimiter('\\end')) { syntax(this.diagnostics, '\\end{circuitikz}', this.token); return undefined; }

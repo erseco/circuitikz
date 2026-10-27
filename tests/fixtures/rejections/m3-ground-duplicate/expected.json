@@ -1,0 +1,10 @@
+[
+  {
+    "code": "unsupported",
+    "message": "Ground option ground is not supported; use the documented CircuiTikZ subset instead.",
+    "line": 2,
+    "column": 25,
+    "endColumn": 31,
+    "severity": "error"
+  }
+]

@@ -102,6 +102,10 @@ export function resolveCoordinates(tree: SyntaxTree, diagnostics: Diagnostics): 
 		let currentSpan = statement.span;
 		let afterTo = false;
 		for (const element of statement.elements) {
+			if (element.kind === 'ground') {
+				if (current !== undefined) segments.push({ from: current, to: current, fromSpan: currentSpan, toSpan: currentSpan, operation: 'ground', keys: element.keys, span: element.span });
+				continue;
+			}
 			if (element.kind === 'name') {
 				if (current !== undefined) define(element.name, current, element.span);
 				continue;

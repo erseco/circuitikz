@@ -1,0 +1,13 @@
+{
+  "origin": "CircuiTikZ 226cd409d8b7625a42d0a084eef085e4e56f86d6 tex/pgfcircbipoles.tex, pgfcircmonopoles.tex; REQUIREMENTS.md M3",
+  "note": "battery2 kind, ports and variant; isolated ports retained, visual open/closed switch states are not simulated.",
+  "fence": "schemd bounds=\"360x160\" title=\"Converted CircuiTikZ circuit\"",
+  "connectivity": [
+    [
+      "B1.positive"
+    ],
+    [
+      "B1.negative"
+    ]
+  ]
+}

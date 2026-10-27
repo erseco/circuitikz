@@ -85,7 +85,7 @@ describe('M2 conversion', () => {
 	it('rejects an endpoint inside another segment instead of leaving a T unconnected', () => {
 		const result = convertCircuitikz(wrap('\\draw (0,0) to[R] (2,0) -- (4,0) to[R] (6,0);\n\\draw (3,0) to[C] (3,-2) -- (3,-3) to[R] (5,-3);'));
 		expect(result).toMatchObject({ ok: false, source: undefined, diagnostics: [{ code: 'geometry', severity: 'error',
-			message: 'Endpoint (300,0) lies inside another segment (hundredths of a TikZ unit), which makes no connection; split that segment at the point or move the endpoint.', line: 3, column: 7, endColumn: 12 }] });
+			message: 'Endpoint (300,0) lies inside another segment and connects to nothing; split that segment there or move the endpoint.', line: 3, column: 7, endColumn: 12 }] });
 		// Splitting the wire at the T gives a real junction.
 		const split = convert('\\draw (0,0) to[R] (2,0) -- (3,0) -- (4,0) to[R] (6,0);\n\\draw (3,0) to[C] (3,-2) -- (3,-3) to[R] (5,-3);');
 		expect(split.components.filter((c) => c.kind === 'junction')).toHaveLength(1);

@@ -57,11 +57,17 @@ async function* generated(seed, cases) {
 	const chars = [...'\\{}[]()%,;=+-|$^0123456789abcXYZ \r\n\t', '😀', 'α', '\u0000'];
 	const tokens = ['\\begin{circuitikz}', '\\end{circuitikz}', '\\draw', '\\coordinate', '\\node', '(', ')', '[', ']', '{', '}', ';', ',', 'to', '++', '+', '--', '|-', '-|', 'cycle', 'R', '0', '1.00', '(A)', '%comment\r\n'];
 	const wrap = (text) => `\\begin{circuitikz}\n${text}\n\\end{circuitikz}`;
+	const junctions = (count) => Array.from({ length: count }, (_, i) => {
+		const x = i * 2, left = i === 0 ? '-0.10' : `${x - 1}.90`;
+		return `\\draw (${x},0) -- (${left},0) (${x},0) -- (${x}.10,0) (${x},0) -- (${x},0.10);`;
+	}).join('\n');
 	const boundaries = [
 		...[-1, 0, 1].map((delta) => ({ input: '%'.repeat(LIMITS.sourceLength + delta) })),
 		{ input: '%'.repeat(1_000_000), options: { maxSourceLength: 1_000_000 } },
 		...[0, 1].flatMap((delta) => [
 			{ input: '{'.repeat(LIMITS.braceDepth + delta) },
+			{ input: wrap(junctions(LIMITS.junctions + delta)) },
+			{ input: wrap(Array.from({ length: LIMITS.components + delta }, (_, i) => `\\draw (${i * 2},0) node[ground]{};`).join('\n')) },
 			{ input: wrap('\\draw (0,0);'.repeat(LIMITS.statements + delta)) },
 			{ input: wrap('\\draw (0,0)' + ' -- (1,0)'.repeat(LIMITS.pathElements - 1 + delta) + ';') },
 			{ input: wrap('\\draw (0,0)' + ' to[R] (1,0)'.repeat(LIMITS.components + delta) + ';') }
@@ -79,7 +85,8 @@ async function* generated(seed, cases) {
 			input = input.slice(0, start) + tokens[next(tokens.length)] + input.slice(start + next(12));
 		} else if (mode === 3) {
 			const n = next(1000) - 500;
-			input = `\\begin{circuitikz}\n\\coordinate (A) at (${n}.01,${n}cm);\n\\draw (A) -- ++(2,0) to[R=$R_{${next(10)}}$] ++(0,2) -| (A) -- cycle;\n\\end{circuitikz}`;
+			const family = ['R', 'C', 'L', 'battery1', 'battery', 'battery2', 'D', 'zD', 'leD', 'nos', 'ncs'][next(11)];
+			input = `\\begin{circuitikz}\n\\coordinate (A) at (${n}.01,${n}cm);\n\\draw (A) to[${family}=$R_{${next(10)}}$] ++(0,2) node[ground]{};\n\\end{circuitikz}`;
 		} else {
 			const large = next(3000);
 			input = ['%'.repeat(large), '{'.repeat(large), `\\begin{circuitikz}\\draw (0,0) to[R=${'a'.repeat(large)}`, `\\begin{circuitikz}\\draw (${next(100)}.${'1'.repeat(next(20))},0);`][next(4)];

@@ -26,6 +26,7 @@ export type Coordinate =
 export type PathElement =
 	{ readonly kind: 'move'; readonly at: Coordinate; readonly span: Span }
 	| { readonly kind: 'segment'; readonly operation: '--' | '|-' | '-|' | 'to'; readonly at: Coordinate; readonly keys: readonly Key[]; readonly span: Span }
+	| { readonly kind: 'ground'; readonly keys: readonly Key[]; readonly span: Span }
 	| { readonly kind: 'name'; readonly name: string; readonly span: Span };
 
 export type Statement =
@@ -48,7 +49,7 @@ export interface ResolvedSegment {
 	readonly toSpan: Span;
 	readonly from: Point;
 	readonly to: Point;
-	readonly operation: '--' | '|-' | '-|' | 'to';
+	readonly operation: '--' | '|-' | '-|' | 'to' | 'ground';
 	readonly keys: readonly Key[];
 	readonly span: Span;
 }
