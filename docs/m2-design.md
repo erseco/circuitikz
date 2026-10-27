@@ -14,7 +14,8 @@ schemd/circuitikz#2 and accepted there; schemd/circuitikz#3 wrote them into REQU
   Only the contract's explicitly listed presentation/pole keys are accepted. Unknowns remain errors.
 - **Unlabelled parts:** keep the literal R-4.5.4 ID label. No API change to suppress duplicate visible
   designators. Battery semantic ports are authoritative; no workaround exchanges ports to compensate
-  for the apparent upstream core battery glyph inconsistency found in the initial audit.
+  for the apparent upstream core battery glyph inconsistency found in the initial audit. Core
+  1.3.1 fixed the glyph (schemd/core#11), so the drawing now matches CircuiTikZ with the same ports.
 - **Geometry:** exact coordinate-keyed vertices; components split nets, wires join them. Union-find
   retains earlier roots and a source-ordered spanning forest. Degenerate wire steps have no physical
   branch and are removed before degree calculation. Original nondegenerate degrees determine junctions
@@ -54,5 +55,5 @@ Property tests cover translation, independent statement ordering, wire reversal,
 battery inversion. Resource tests cover exactly 512 junctions and one past, before construction continues.
 Fuzz now generates valid convertible grammar examples as well as malformed input and mutations.
 
-M3 remains a separate stacked PR. Core's battery glyph issue is an upstream visual limitation; no core
+M3 remains a separate stacked PR. Core's battery glyph issue was fixed upstream in core 1.3.1; no core
 repository, package, release, tag or public type was modified here.

@@ -67,3 +67,8 @@ document is byte-identical.
 After schemd/circuitikz#2 was settled: the peer range moves to `^1.2.0` (lockfile at core 1.2.0), and
 unlabelled parts and junctions are emitted without a label (R-4.5.4). The nine changed expected
 documents were checked to differ only by the removed `"ID"` labels, including both original fixtures.
+
+After core 1.3.1 (schemd/core#11): the lockfile moves to core 1.3.1, and the peer and development
+range stays `^1.2.0` (R-4.5.4). A `battery1` loop rendered with tectonic and the converted document
+rendered with core 1.3.1 now agree: the long plate sits at the start of the path, horizontally and
+vertically. No expected document changes, since core only draws the plates differently.

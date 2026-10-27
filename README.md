@@ -122,9 +122,9 @@ corresponding work; exact-integer overflow is rejected. Fuzz failures are minimi
 
 Node.js 24+, strict TypeScript, ESM `.js` specifiers, browser/worker-compatible source, no runtime
 or new development dependencies. Bun **1.4.4** is pinned; core `^1.2.0` is the sole peer, because unlabelled
-parts are emitted without a label (R-4.5.4). Core draws its battery glyph with the long plate on the
-`negative` side, so a battery is drawn mirrored until core fixes it; the output keeps **netlist**
-polarity and never swaps terminals to compensate (R-4.4.3).
+parts are emitted without a label (R-4.5.4). Core draws a battery's long plate on its `positive`
+terminal from 1.3.1 (schemd/core#11); 1.2.x and 1.3.0 draw the plates the wrong way round. The output
+keeps **netlist** polarity either way and never swaps terminals to compensate (R-4.4.3).
 
 ```sh
 bun ci
