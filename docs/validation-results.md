@@ -40,8 +40,8 @@ No runtime/dev dependency or public type interface changed. The original two con
 remain unchanged; added expectations use independent endpoint/placement templates and were inspected.
 
 The browser-target VM smoke performs successful conversion with standard TextEncoder/TextDecoder Web
-APIs and no Node/DOM globals. It is not a real-browser engine integration test. Known core battery glyph
-polarity and rose alias/theme behavior are documented in README and m3-design.md. Ground/junction body
+APIs and no Node/DOM globals. It is not a real-browser engine integration test. The core battery glyph
+fix (1.3.1) and rose alias/theme behavior are documented in README and m3-design.md. Ground/junction body
 collisions are explicitly rejected rather than silently dropping junctions or inventing offsets.
 M4 website/publication/tagging is not performed.
 
@@ -69,3 +69,8 @@ After schemd/circuitikz#2 was settled: core `^1.2.0` with unlabelled parts emitt
 one `unsupported` diagnostic (#2 §4). Their two conformance fixtures became the `closed-switch`
 rejection fixture, and the alias tests now cover only `nos`/`ospst`. 812 tests (19 fewer, because the
 closed-switch family rows went away and one rejection test took their place).
+
+After core 1.3.1 (schemd/core#11): the lockfile moves to core 1.3.1, and the peer and development
+range stays `^1.2.0` (R-4.5.4). A `battery1` loop rendered with tectonic and the converted document
+rendered with core 1.3.1 now agree: the long plate sits at the start of the path, horizontally and
+vertically. No expected document changes, since core only draws the plates differently.
