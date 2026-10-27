@@ -46,24 +46,50 @@ const SOURCE_RULES: readonly (readonly [string, RegExp])[] = [
 	['a deep import into @schemd/core', word("from\\s+'@schemd/core/")]
 ];
 
-/** Use the installed TypeScript 7 scanner: quoted literals and comments are
- * tokens, so multiline and double-quoted imports cannot bypass the line rules. */
+/* Words after which an expression starts, so a `/` that follows opens a regular expression. */
+const BEFORE_EXPRESSION = new Set(['return', 'typeof', 'instanceof', 'in', 'of', 'new', 'delete', 'void', 'throw', 'case', 'do', 'else', 'yield', 'await', 'extends']);
+/* After these, a `{` opens a block rather than an object literal. */
+const BEFORE_BLOCK = new Set([';', '{', '}', ')', '=>', 'else', 'do']);
+const CONTROL_HEADS = new Set(['if', 'while', 'for', 'with']);
+const LITERALS = new Set([
+	ts.SyntaxKind.NumericLiteral,
+	ts.SyntaxKind.BigIntLiteral,
+	ts.SyntaxKind.StringLiteral,
+	ts.SyntaxKind.RegularExpressionLiteral,
+	ts.SyntaxKind.NoSubstitutionTemplateLiteral,
+	ts.SyntaxKind.TemplateTail,
+	ts.SyntaxKind.CloseBracketToken,
+	ts.SyntaxKind.PlusPlusToken,
+	ts.SyntaxKind.MinusMinusToken
+]);
+
+/**
+ * Use the installed TypeScript 7 scanner: quoted literals, regular expressions
+ * and comments are tokens, so multiline and double-quoted imports cannot bypass
+ * the line rules. The scanner cannot tell `/` from the start of a regular
+ * expression; like the parser, this decides from what came before: after an
+ * operand it divides, anywhere else it opens a regular expression.
+ */
 function syntaxOffenders(source: string): string[] {
 	const found: string[] = [];
 	const scanner = ts.createScanner(true, undefined, source);
-	const tokens: { kind: ts.SyntaxKind; value: string }[] = [];
-	const templates: number[] = [];
+	const tokens: { kind: ts.SyntaxKind; value: string; operand: boolean }[] = [];
+	/* What each open `(` and `{` began, so its closer knows whether an operand just ended. */
+	const parens: boolean[] = [];
+	const braces: ('block' | 'object' | 'template')[] = [];
 	for (let kind = scanner.scan(); kind !== ts.SyntaxKind.EndOfFile; kind = scanner.scan()) {
-		const top = templates.length - 1;
-		if (kind === ts.SyntaxKind.OpenBraceToken && top >= 0) templates[top]! += 1;
-		if (kind === ts.SyntaxKind.CloseBraceToken && top >= 0) {
-			if (templates[top] === 0) {
-				kind = scanner.reScanTemplateToken(false);
-				if (kind === ts.SyntaxKind.TemplateTail) templates.pop();
-			} else templates[top]! -= 1;
-		}
-		if (kind === ts.SyntaxKind.TemplateHead) templates.push(0);
-		tokens.push({ kind, value: kind === ts.SyntaxKind.StringLiteral ? scanner.getTokenValue() : scanner.getTokenText() });
+		const previous = tokens.at(-1);
+		if ((kind === ts.SyntaxKind.SlashToken || kind === ts.SyntaxKind.SlashEqualsToken) && !previous?.operand) kind = scanner.reScanSlashToken();
+		const opened = kind === ts.SyntaxKind.CloseBraceToken ? braces.pop() : undefined;
+		if (opened === 'template') kind = scanner.reScanTemplateToken(false);
+		const value = kind === ts.SyntaxKind.StringLiteral ? scanner.getTokenValue() : scanner.getTokenText();
+		let operand = LITERALS.has(kind) || opened === 'object';
+		if (kind === ts.SyntaxKind.Identifier || (kind >= ts.SyntaxKind.FirstKeyword && kind <= ts.SyntaxKind.LastKeyword)) operand = !BEFORE_EXPRESSION.has(value);
+		if (kind === ts.SyntaxKind.CloseParenToken) operand = parens.pop() === false;
+		if (kind === ts.SyntaxKind.OpenParenToken) parens.push(CONTROL_HEADS.has(previous?.value ?? ''));
+		if (kind === ts.SyntaxKind.OpenBraceToken) braces.push(previous === undefined || previous.operand || BEFORE_BLOCK.has(previous.value) ? 'block' : 'object');
+		if (kind === ts.SyntaxKind.TemplateHead || kind === ts.SyntaxKind.TemplateMiddle) braces.push('template');
+		tokens.push({ kind, value, operand });
 	}
 	const forbidden = new Set(['process', 'require', 'console', 'eval', 'Function', 'RegExp', 'Date', 'performance', 'Intl',
 		'window', 'document', 'navigator', 'globalThis', 'fetch', 'XMLHttpRequest', 'WebSocket']);
@@ -110,6 +136,19 @@ describe('source policy', () => {
 			expect(syntaxOffenders(`${name}["x"];`)).toContain(`host or dynamic global ${name}`);
 		}
 		expect(syntaxOffenders('import type { SchematicFence } from "@schemd/core"; export * from "./a.js"; Math.floor(1);')).toEqual([]);
+	});
+
+	it('reads a regular expression literal as one token and a slash after an operand as division', () => {
+		/* Review on #4: a quote inside a regex must not hide the code after it, and regex text is not code. */
+		expect(syntaxOffenders('export const quote = /"/;\nexport const sample = () => Math["random"]();')).toContain('indexed randomness');
+		expect(syntaxOffenders("const a = /'/, b = /`/; Math['random']();")).toContain('indexed randomness');
+		expect(syntaxOffenders('const pattern = /document/;')).toEqual([]);
+		for (const regex of ['x = /document/g;', 'f(/window/);', '[/process/];', 'return /console/;', 'a ? /eval/ : /Date/;', '!/fetch/.test(s);', 'if (x) /document/.test(y);', 'while (x) /window/.exec(y);', '{} /document/.test(y);', 'const f = () => {}\n/document/.test(y);']) {
+			expect(syntaxOffenders(regex), regex).toEqual([]);
+		}
+		for (const division of ['a / document / 2;', 'f(x) / document;', 'a[0] / window;', '(1) / process;', '1 / console;', 'x++ / Date;', 'this / eval;', '({}) / Function;', 'const o = {} / RegExp;', '`${a}` / window;']) {
+			expect(syntaxOffenders(division), division).toHaveLength(1);
+		}
 	});
 
 	it('skips, focuses, or defers no test', () => {
