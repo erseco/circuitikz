@@ -1,0 +1,10 @@
+[
+  {
+    "code": "limit",
+    "message": "The canvas extent limit is 1048416; split the circuit into smaller environments.",
+    "line": 1,
+    "column": 1,
+    "endColumn": 7,
+    "severity": "error"
+  }
+]

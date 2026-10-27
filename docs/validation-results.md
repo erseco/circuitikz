@@ -1,66 +1,47 @@
-# Local validation results
+# M2 validation results
 
-Executed 2026-10-25, using **Node.js 24.22.1**, **Bun 1.4.4**, TypeScript 7.0.2 and the unchanged
-lockfile (core 1.1.0, Vitest/V8 coverage 5.0.5, Vite 8.3.5). These are local results; GitHub Actions
-results must be read separately. Scope is the M1 front end, not a complete converter.
+Executed locally on 2026-10-25 with Node.js 24.22.1, Bun 1.4.4 and the unchanged lockfile.
+The M2 branch is stacked on M1. No upstream design approval or publication is claimed.
 
-| Command | Result | Evidence |
+| Command | Result |
+| --- | --- |
+| `bun ci` | PASS (exit 0) |
+| `bun run check` | PASS (exit 0) |
+| `bun run test` | PASS (exit 0) |
+| `bun run test:coverage` | PASS (exit 0) |
+| `bun run test:mutation` | PASS (exit 0) |
+| `bun run test:fuzz:contract` | PASS (exit 0) |
+| `bun run build` | PASS (exit 0) |
+| `bun run size` | PASS (exit 0) |
+| `bun run release:check` | PASS (exit 0) |
+| `npm pack --dry-run` | PASS (exit 0) |
+| `bun run test:smoke` | PASS (exit 0) |
+
+Tests  379 passed (379). 71/71 named mutants killed after a passing baseline.
+Fuzz seed 6049357: 20000 cases / 40000 conversions, now including successful conversion grammar.
+
+| Coverage axis | Actual | Covered / total |
 | --- | --- | --- |
-| `bun ci` | PASS | Frozen lockfile, exit 0; no lockfile changes |
-| `bun run check` | PASS | Original strict TypeScript configuration, tests included |
-| `bun run test` | PASS | 175 tests, 7 suites; no skipped/focused tests |
-| `bun run test:coverage` | PASS | Per-file 100% statements, branches, functions and lines |
-| `bun run test:mutation` | PASS | Green baseline, 44/44 mutants killed by recorded failing tests |
-| `bun run test:fuzz:contract` | PASS | Seed 6049357; 20000 cases / 40000 conversions, valid option variations and active limit boundaries |
-| `bun run build` | PASS | ESM JS and declarations for all modules |
-| `bun run size` | PASS | Both 5 KiB compression gates; detailed measurements below |
-| `bun run release:check` | PASS | Type check, coverage, mutation, fuzz/build, smoke and size repeated together |
-| `npm pack --dry-run` | PASS | Only package metadata/license, README, CHANGELOG and dist; no publication |
-| `bun run test:smoke` | PASS | Node 24.22.1 built exports, recursive declarations, topology helper and diagnostics-only converter; browser-target bundle without Node/DOM globals |
+| statements | 100% | 846 / 846 |
+| branches | 100% | 652 / 652 |
+| functions | 100% | 98 / 98 |
+| lines | 100% | 597 / 597 |
 
-No mandatory command was skipped. Intermediate failures during development were fixed before this
-final sequence: incomplete coverage/assertions, the scaffold-only size budget, an equivalent mutant,
-Node type imports in the infrastructure test, and the unavailable legacy TypeScript compiler API.
-No thresholds were lowered, no tests suppressed, and no package dependency was added.
+All source files remain included, with 100% per-file gates and no exclusions.
 
-## Coverage
-
-| Axis | Covered / total | Actual | Gate |
+| Full public bundle, core external | M1 | M2 | M2 gate |
 | --- | --- | --- | --- |
-| Statements | 457 / 457 | 100% | 100% per file |
-| Branches | 353 / 353 | 100% | 100% per file |
-| Functions | 61 / 61 | 100% | 100% per file |
-| Lines | 330 / 330 | 100% | 100% per file |
+| Minified | 11833 B | 23141 B | measured |
+| Gzip | 4406 B | 8615 B | 9216 B |
+| Brotli-11 | 3942 B | 7762 B | 9216 B |
 
-Eight files have executable coverage; three type/re-export-only files are empty in the V8 report.
-Every source file is included by `src/**/*.ts`; no coverage exclusions or ignore comments were added.
+The size-script comment records the measured graph, component/label, emitter, geometry and verifier cost.
+The 12288 B gzip release ceiling is unchanged. No dependency or public type interface was added.
 
-## Size
-
-Whole public entry, minified for ES2022, core external; gzip level 9, brotli quality 11.
-
-| Measurement | M0 | M1 | Change | Gate |
-| --- | --- | --- | --- | --- |
-| Minified | 991 B | 11833 B | +10842 B | Measured, no separate gate |
-| Gzip | 533 B | 4406 B | +3873 B | 5120 B |
-| Brotli-11 | 455 B | 3942 B | +3487 B | 5120 B |
-
-The M0-only 1024 B gzip/brotli gates could not hold a parser. The 5 KiB replacement is justified in
-`scripts/check-bundle-size.mjs` by the measured scanner/parser/resolver/diagnostics/host-validation
-cost. The contractual 0.1.0 ceiling remains **12288 B gzip**. Future graph/emission code must be
-measured rather than assuming that the remaining budget will suffice.
-
-## Limits of these results
-
-There are no successful conversion results in M1, so no claim is made about emitted source maps,
-component/label/polarity preservation, graph connectivity, topology metamorphisms or M2/M3 acceptance.
-The original conformance expected documents still compile, route first-pass and match their metadata;
-they are not yet produced by this converter. Real-browser integration and successful dist conversion
-remain M2 work. The browser/worker compatibility check is a browser-target VM smoke, not a browser run.
-
-The initial audit, implementation sequence and unresolved maintainer decisions are in
-[implementation-audit.md](./implementation-audit.md). All 106 R-* requirements, including deferred
-and blocked ones, are mapped in [requirements-traceability.md](./requirements-traceability.md).
+Both original conformance documents are unchanged. New expectations were independently constructed or
+generated once and read in full; see m2-design.md. M3 components remain deferred to the next stacked PR.
+The browser-target smoke executes real successful conversion with standard TextEncoder/TextDecoder Web
+APIs in a VM without Node/DOM globals; it is not a real-browser engine integration test.
 
 ## Review follow-up
 
@@ -71,12 +52,23 @@ the unchanged lockfile; CI runs the same gates on Node 24. Every mandatory comma
 
 | Measure | Result |
 | --- | --- |
-| Tests | 176 passed, 7 suites |
-| Mutants | 48/48 killed |
-| Coverage (stmts / branches / funcs / lines) | 469/469, 363/363, 62/62, 335/335, 100% per file |
-| Size | 12137 B minified, 4528 B gzip, 4038 B brotli-11 (5 KiB gates unchanged) |
+| Tests | 383 passed |
+| Mutants | 82/82 killed |
+| Coverage (stmts / branches / funcs / lines) | 873/873, 673/673, 101/101, 613/613, 100% per file |
+| Size | 23935 B minified, 8897 B gzip, 8017 B brotli-11 (9 KiB gates unchanged) |
 
-Changes: `cycle` closes the current subpath, and is rejected after a `to[...]` in that subpath, because
-CircuiTikZ closes it inside the component's drawing; a missing `;` before the next statement no longer
-swallows that statement during recovery; empty option entries are ignored. The `empty-option`
-rejection fixture is replaced by `missing-semicolon-recovery`, so the corpus stays at 36 cases; `cycle-after-component` then makes it 37.
+Changes on top of the M1 follow-up: an endpoint strictly inside another segment is a `geometry`
+error (`t-junction` fixture), a wire with an unconnected end is `unsupported` (`wire-dead-end`
+fixture; `segments-overlap` now also reports its dead end), and parts are matched to segments by
+index rather than by span start. Both original conformance documents are unchanged. `cycle-return`
+now closes with an explicit `-- (0,0)`, because `cycle` after `to[R]` is rejected; its expected
+document is byte-identical.
+
+After schemd/circuitikz#2 was settled: the peer range moves to `^1.2.0` (lockfile at core 1.2.0), and
+unlabelled parts and junctions are emitted without a label (R-4.5.4). The nine changed expected
+documents were checked to differ only by the removed `"ID"` labels, including both original fixtures.
+
+After core 1.3.1 (schemd/core#11): the lockfile moves to core 1.3.1, and the peer and development
+range stays `^1.2.0` (R-4.5.4). A `battery1` loop rendered with tectonic and the converted document
+rendered with core 1.3.1 now agree: the long plate sits at the start of the path, horizontally and
+vertically. No expected document changes, since core only draws the plates differently.

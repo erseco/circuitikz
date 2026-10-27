@@ -14,7 +14,7 @@ import manifest from '../package.json';
  * If unsure, a module is internal. Promoting later is easy; un-promoting is a
  * breaking change.
  */
-const INTERNAL_MODULES = new Set(['topology', 'ast', 'convert', 'coordinates', 'diagnostics', 'lexer', 'limits', 'options', 'parser']);
+const INTERNAL_MODULES = new Set(['topology', 'ast', 'convert', 'coordinates', 'diagnostics', 'lexer', 'limits', 'options', 'parser', 'labels', 'components', 'circuit', 'graph', 'emitter', 'verify', 'geometry']);
 
 const sourceModules = Object.keys(import.meta.glob('../src/**/*.ts'))
 	.map((path) => path.replace('../src/', '').replace(/\.ts$/, ''))

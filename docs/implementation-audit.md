@@ -1,4 +1,7 @@
-# Implementation audit and sequence
+# Initial implementation audit and sequence
+
+This records the M0→M1 inspection. Current M2 decisions and implementation are in
+[m2-design.md](m2-design.md); historical pending statements below describe the M1 baseline.
 
 ## Baseline inspection
 

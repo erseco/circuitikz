@@ -79,7 +79,7 @@ async function* generated(seed, cases) {
 			input = input.slice(0, start) + tokens[next(tokens.length)] + input.slice(start + next(12));
 		} else if (mode === 3) {
 			const n = next(1000) - 500;
-			input = `\\begin{circuitikz}\n\\coordinate (A) at (${n}.01,${n}cm);\n\\draw (A) -- +(2,0) to[R=$R_{${next(10)}}$] ++(0,2) |- (A) -- cycle;\n\\end{circuitikz}`;
+			input = `\\begin{circuitikz}\n\\coordinate (A) at (${n}.01,${n}cm);\n\\draw (A) -- ++(2,0) to[R=$R_{${next(10)}}$] ++(0,2) -| (A) -- cycle;\n\\end{circuitikz}`;
 		} else {
 			const large = next(3000);
 			input = ['%'.repeat(large), '{'.repeat(large), `\\begin{circuitikz}\\draw (0,0) to[R=${'a'.repeat(large)}`, `\\begin{circuitikz}\\draw (${next(100)}.${'1'.repeat(next(20))},0);`][next(4)];

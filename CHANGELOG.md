@@ -8,6 +8,32 @@ Written for someone deciding whether to upgrade. Sections: `Fixed`, `Added`, `Re
 
 ### Added
 
+- M2 conversion of passives, battery1 and wires with exact graph nets, deterministic emission,
+  terminal polarity, labels, source maps and independent core/compiler verification.
+- Coordinate/alias/polarity conformance cases, geometry/label rejection cases, topology properties,
+  corruption-oracle tests and graph resource tests.
+
+### Changed (M2)
+
+- The `@schemd/core` peer range is now `^1.2.0`. A part with no label, and every junction, is emitted
+  without a label (`resistor:R1 at …`), so core draws its designator once instead of twice (R-4.5.4).
+- The lockfile moves to core 1.3.1, so tests and renders use a core that draws a battery's long plate
+  on its `positive` terminal (schemd/core#11). The peer and development range stays `^1.2.0`: under
+  1.2.x and 1.3.0 a converted battery keeps the right ports and netlist, but core draws its plates
+  the wrong way round.
+- connectivityOf now includes isolated non-junction ports as singleton nets, correcting its former
+  connection-only behavior without omitting any input terminal.
+- Conflicting kinds/labels are rejected; repeated invert is idempotent. Zero-length wire steps do not
+  inflate junction degree. Unsupported geometry is diagnosed before output verification.
+- An endpoint strictly inside another segment (a T without a shared vertex) is a `geometry` error
+  instead of a silent non-connection; split the segment at the T to get a junction.
+- A wire with an unconnected end (a stub off a terminal, or a junction with only stubs) is
+  `unsupported` instead of being silently dropped from the output, because schemd connections are
+  terminal-to-terminal. Leaves left by dropped cycle edges are not dead ends.
+- The full-entry size gates are measured and raised to 9 KiB for M2; the 12 KiB release ceiling holds.
+
+### Added (M1)
+
 - The diagnostics-only M1 `convertCircuitikz` entry point: a bounded scanner and span-aware parser,
   exact integer coordinates, relative and named references, resource ceilings, validated host options,
   stable actionable diagnostics and strict presentation warnings. It does not emit Schemd yet;

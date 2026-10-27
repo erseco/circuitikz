@@ -55,6 +55,30 @@ export function presentation(d: Diagnostics, key: string, span: Span): void {
 	d.add('unsupported', `Presentation option ${key} was ignored; schemd draws its own style.`, span, true);
 }
 
-export function pending(d: Diagnostics, span: Span): void {
-	d.add('unsupported', 'Conversion is not implemented yet; this milestone validates the supported input syntax only.', span);
+function geometry(d: Diagnostics, message: string, span: Span): void {
+	d.add('geometry', message, span);
+}
+
+export function componentGeometry(d: Diagnostics, from: string, to: string, reason: string, span: Span): void {
+	geometry(d, `Component segment ${from} to ${to} ${reason} (endpoints in hundredths of a TikZ unit); use an axis-aligned segment at least 0.84 TikZ units long.`, span);
+}
+
+export function overlap(d: Diagnostics, span: Span): void {
+	geometry(d, 'Segments overlap along their length; separate them or join them at explicit endpoints.', span);
+}
+
+export function interior(d: Diagnostics, point: string, span: Span): void {
+	geometry(d, `Endpoint ${point} lies inside another segment (hundredths of a TikZ unit), which makes no connection; split that segment at the point or move the endpoint.`, span);
+}
+
+export function internal(d: Diagnostics, reason: string, span: Span): void {
+	d.add('internal', `Conversion verification failed: ${reason}; please report this with the input.`, span);
+}
+
+export function placementOverlap(d: Diagnostics, first: string, second: string, span: Span): void {
+	geometry(d, `Components ${first} and ${second} overlap at the required scale; increase their separation.`, span);
+}
+
+export function labelExtent(d: Diagnostics, id: string, span: Span): void {
+	geometry(d, `Component ${id} or its label exceeds the fixed canvas; shorten the label or enlarge the circuit geometry.`, span);
 }

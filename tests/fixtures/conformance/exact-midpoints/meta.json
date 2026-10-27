@@ -1,0 +1,19 @@
+{
+  "origin": "REQUIREMENTS.md M2; CircuiTikZ tex/pgfcircbipoles.tex",
+  "note": "Two-decimal precision, negative origin and floor rounding after y inversion.",
+  "fence": "schemd bounds=\"445x245\" title=\"Converted CircuiTikZ circuit\"",
+  "connectivity": [
+    [
+      "R1.in"
+    ],
+    [
+      "R1.out"
+    ],
+    [
+      "C1.in"
+    ],
+    [
+      "C1.out"
+    ]
+  ]
+}
