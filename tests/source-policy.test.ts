@@ -68,7 +68,8 @@ const LITERALS = new Set([
  * and comments are tokens, so multiline and double-quoted imports cannot bypass
  * the line rules. The scanner cannot tell `/` from the start of a regular
  * expression; like the parser, this decides from what came before: after an
- * operand it divides, anywhere else it opens a regular expression.
+ * operand (a property name or a postfix `!` included) it divides, anywhere
+ * else it opens a regular expression.
  */
 function syntaxOffenders(source: string): string[] {
 	const found: string[] = [];
@@ -84,7 +85,10 @@ function syntaxOffenders(source: string): string[] {
 		if (opened === 'template') kind = scanner.reScanTemplateToken(false);
 		const value = kind === ts.SyntaxKind.StringLiteral ? scanner.getTokenValue() : scanner.getTokenText();
 		let operand = LITERALS.has(kind) || opened === 'object';
-		if (kind === ts.SyntaxKind.Identifier || (kind >= ts.SyntaxKind.FirstKeyword && kind <= ts.SyntaxKind.LastKeyword)) operand = !BEFORE_EXPRESSION.has(value);
+		/* After `.` or `?.` any word is a property name, so the member access is an operand. */
+		if (kind === ts.SyntaxKind.Identifier || (kind >= ts.SyntaxKind.FirstKeyword && kind <= ts.SyntaxKind.LastKeyword)) operand = !BEFORE_EXPRESSION.has(value) || ['.', '?.'].includes(previous?.value ?? '');
+		/* A `!` right after an operand on the same line is TypeScript's postfix non-null assertion. */
+		if (kind === ts.SyntaxKind.ExclamationToken) operand = previous?.operand === true && !scanner.hasPrecedingLineBreak();
 		if (kind === ts.SyntaxKind.CloseParenToken) operand = parens.pop() === false;
 		if (kind === ts.SyntaxKind.OpenParenToken) parens.push(CONTROL_HEADS.has(previous?.value ?? ''));
 		if (kind === ts.SyntaxKind.OpenBraceToken) braces.push(previous === undefined || previous.operand || BEFORE_BLOCK.has(previous.value) ? 'block' : 'object');
@@ -148,6 +152,16 @@ describe('source policy', () => {
 		}
 		for (const division of ['a / document / 2;', 'f(x) / document;', 'a[0] / window;', '(1) / process;', '1 / console;', 'x++ / Date;', 'this / eval;', '({}) / Function;', 'const o = {} / RegExp;', '`${a}` / window;']) {
 			expect(syntaxOffenders(division), division).toHaveLength(1);
+		}
+	});
+
+	it('keeps division after a postfix non-null assertion or a keyword property name', () => {
+		/* Review on #4: `!` after an operand asserts it, and a keyword after `.` names a property. */
+		for (const division of ['values[0]! / Math["random"]();', 'input.in / Math["random"]();', 'input?.return / Math["random"]();', 'a!! / Math["random"]();']) {
+			expect(syntaxOffenders(division), division).toContain('indexed randomness');
+		}
+		for (const regex of ['!/document/.test(s);', 'a\n!/document/.test(s);', 'x = !!/window/.test(s);']) {
+			expect(syntaxOffenders(regex), regex).toEqual([]);
 		}
 	});
 
