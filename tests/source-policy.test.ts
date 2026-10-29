@@ -74,7 +74,7 @@ const LITERALS = new Set([
 function syntaxOffenders(source: string): string[] {
 	const found: string[] = [];
 	const scanner = ts.createScanner(true, undefined, source);
-	const tokens: { kind: ts.SyntaxKind; value: string; operand: boolean }[] = [];
+	const tokens: { kind: ts.SyntaxKind; value: string; operand: boolean; member: boolean }[] = [];
 	/* What each open `(` and `{` began, so its closer knows whether an operand just ended. */
 	const parens: boolean[] = [];
 	const braces: ('block' | 'object' | 'template')[] = [];
@@ -85,22 +85,23 @@ function syntaxOffenders(source: string): string[] {
 		if (opened === 'template') kind = scanner.reScanTemplateToken(false);
 		const value = kind === ts.SyntaxKind.StringLiteral ? scanner.getTokenValue() : scanner.getTokenText();
 		let operand = LITERALS.has(kind) || opened === 'object';
-		/* After `.` or `?.` any word is a property name, so the member access is an operand. */
-		if (kind === ts.SyntaxKind.Identifier || (kind >= ts.SyntaxKind.FirstKeyword && kind <= ts.SyntaxKind.LastKeyword)) operand = !BEFORE_EXPRESSION.has(value) || ['.', '?.'].includes(previous?.value ?? '');
+		/* After `.` or `?.` any word is a member name: an operand, never a keyword or a global. */
+		const member = ['.', '?.'].includes(previous?.value ?? '');
+		if (kind === ts.SyntaxKind.Identifier || (kind >= ts.SyntaxKind.FirstKeyword && kind <= ts.SyntaxKind.LastKeyword)) operand = member || !BEFORE_EXPRESSION.has(value);
 		/* A `!` right after an operand on the same line is TypeScript's postfix non-null assertion. */
 		if (kind === ts.SyntaxKind.ExclamationToken) operand = previous?.operand === true && !scanner.hasPrecedingLineBreak();
 		if (kind === ts.SyntaxKind.CloseParenToken) operand = parens.pop() === false;
-		if (kind === ts.SyntaxKind.OpenParenToken) parens.push(CONTROL_HEADS.has(previous?.value ?? ''));
+		if (kind === ts.SyntaxKind.OpenParenToken) parens.push(previous?.member === false && CONTROL_HEADS.has(previous.value));
 		if (kind === ts.SyntaxKind.OpenBraceToken) braces.push(previous === undefined || previous.operand || BEFORE_BLOCK.has(previous.value) ? 'block' : 'object');
 		if (kind === ts.SyntaxKind.TemplateHead || kind === ts.SyntaxKind.TemplateMiddle) braces.push('template');
-		tokens.push({ kind, value, operand });
+		tokens.push({ kind, value, operand, member });
 	}
 	const forbidden = new Set(['process', 'require', 'console', 'eval', 'Function', 'RegExp', 'Date', 'performance', 'Intl',
 		'window', 'document', 'navigator', 'globalThis', 'fetch', 'XMLHttpRequest', 'WebSocket']);
 	for (let index = 0; index < tokens.length; index += 1) {
 		const token = tokens[index]!;
 		if (token.kind === ts.SyntaxKind.AnyKeyword) found.push('explicit any');
-		if (token.kind === ts.SyntaxKind.Identifier && forbidden.has(token.value)) found.push(`host or dynamic global ${token.value}`);
+		if (token.kind === ts.SyntaxKind.Identifier && !token.member && forbidden.has(token.value)) found.push(`host or dynamic global ${token.value}`);
 		if (token.kind === ts.SyntaxKind.ImportKeyword && tokens[index + 1]?.kind === ts.SyntaxKind.OpenParenToken) found.push('dynamic import');
 		if (token.kind === ts.SyntaxKind.StringLiteral && ['from', 'import'].includes(tokens[index - 1]?.value ?? '')) {
 			const value = token.value;
@@ -163,6 +164,17 @@ describe('source policy', () => {
 		for (const regex of ['!/document/.test(s);', 'a\n!/document/.test(s);', 'x = !!/window/.test(s);']) {
 			expect(syntaxOffenders(regex), regex).toEqual([]);
 		}
+	});
+
+	it('reads a word after `.` or `?.` as a member name, not a control head or a global', () => {
+		/* Review on #4: a method named like a keyword is a call, and `.document` is the compiler's result. */
+		for (const division of ['input.if() / Math["random"]();', 'input.with() / Math["random"]();', 'input?.while() / Math["random"]();']) {
+			expect(syntaxOffenders(division), division).toContain('indexed randomness');
+		}
+		expect(syntaxOffenders("import { compileSchematic } from '@schemd/core';\nexport const model = (source: string) => compileSchematic(source, {\n  bounds: { width: 640, height: 480 }, title: 'Review schematic'\n}).document;")).toEqual([]);
+		expect(syntaxOffenders('result?.window;')).toEqual([]);
+		expect(syntaxOffenders('document.title;')).toContain('host or dynamic global document');
+		expect(syntaxOffenders('if (x) document.title;')).toContain('host or dynamic global document');
 	});
 
 	it('skips, focuses, or defers no test', () => {
