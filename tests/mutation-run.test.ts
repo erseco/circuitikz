@@ -23,7 +23,10 @@ describe('mutation verdicts', () => {
 		expect(await runSuites(fixtures, ['hangs.test.mjs'], 1_500)).toMatchObject({ verdict: 'timeout' });
 	}, 10_000);
 
-	it.each([['cannot-load.test.mjs'], ['empty.test.mjs'], ['passes.test.mjs', 'cannot-load.test.mjs']])('stops on a run that proves nothing: %s', async (...files) => {
-		await expect(runSuites(fixtures, files)).rejects.toThrow(/proves nothing/);
-	});
+	it.each([['cannot-load.test.mjs'], ['empty.test.mjs'], ['passes.test.mjs', 'cannot-load.test.mjs']].map((files) => [files.join(' + '), files] as const))(
+		'stops on a run that proves nothing: %s',
+		async (_, files) => {
+			await expect(runSuites(fixtures, files)).rejects.toThrow(/proves nothing/);
+		}
+	);
 });
