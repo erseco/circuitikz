@@ -485,7 +485,8 @@ protects nothing, and review rejects it.
 stated property, together with the suites that must fail. A surviving mutant fails CI. The suites
 pass before any mutant is applied. A mutant is killed when any of its tests fails; a run that
 outlives its time limit counts as killed and is reported as a timeout. A run in which a file fails
-to load or no test runs proves nothing and stops the gate. *`tests/mutation-run.test.ts` checks
+to load, no test runs, vitest writes no report, or vitest fails while every test passes proves
+nothing and stops the gate. *`tests/mutation-run.test.ts` checks
 these verdicts.*
 
 **R-8.2.2** Every module in `src` has at least one mutant, except logic-free modules listed in

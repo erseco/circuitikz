@@ -23,10 +23,14 @@ describe('mutation verdicts', () => {
 		expect(await runSuites(fixtures, ['hangs.test.mjs'], 1_500)).toMatchObject({ verdict: 'timeout' });
 	}, 10_000);
 
-	it.each([['cannot-load.test.mjs'], ['empty.test.mjs'], ['passes.test.mjs', 'cannot-load.test.mjs']].map((files) => [files.join(' + '), files] as const))(
+	it.each([['cannot-load.test.mjs'], ['empty.test.mjs'], ['passes.test.mjs', 'cannot-load.test.mjs'], ['unhandled.test.mjs']].map((files) => [files.join(' + '), files] as const))(
 		'stops on a run that proves nothing: %s',
 		async (_, files) => {
 			await expect(runSuites(fixtures, files)).rejects.toThrow(/proves nothing/);
 		}
 	);
+
+	it('stops when vitest writes no report', async () => {
+		await expect(runSuites(new URL('./no-report/', fixtures), ['unreached.test.mjs'])).rejects.toThrow(/proves nothing: vitest wrote no report/);
+	});
 });

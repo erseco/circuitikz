@@ -10,8 +10,9 @@ const vitest = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'node_modu
  * Run `tests` under vitest in `cwd` and say what the run proves (R-8.2.1).
  *
  * `passed` when every test passed, `killed` when any test failed, `timeout`
- * when the run outlived `limit`. A run in which a file failed to load or no
- * test ran proves nothing, and throws. The verdict comes from the structure of
+ * when the run outlived `limit`. A run in which a file failed to load, no
+ * test ran, vitest wrote no report, or vitest failed with every test passing
+ * proves nothing, and throws. The verdict comes from the structure of
  * the JSON report, never from the wording of an error.
  *
  * @param {string | URL} cwd
@@ -32,12 +33,19 @@ export async function runSuites(cwd, tests, limit = 45_000) {
 		const output = `${result.stdout}${result.stderr}`;
 		if (result.error?.code === 'ETIMEDOUT') return { verdict: 'timeout', output };
 		if (result.error !== undefined) throw result.error;
-		const report = JSON.parse(await readFile(reportPath, 'utf8'));
+		const report = JSON.parse(
+			await readFile(reportPath, 'utf8').catch(() => {
+				throw new Error(`The run proves nothing: vitest wrote no report.\n${output}`);
+			})
+		);
 		const unloaded = report.testResults.filter((file) => file.message !== '').map((file) => file.name);
 		if (report.numTotalTests === 0 || unloaded.length > 0) {
 			throw new Error(`The run proves nothing: ${unloaded.length > 0 ? `${unloaded.join(', ')} failed to load` : 'no test ran'}.\n${output}`);
 		}
-		return { verdict: report.numFailedTests > 0 ? 'killed' : 'passed', output };
+		const verdict = report.numFailedTests > 0 ? 'killed' : 'passed';
+		/* An unhandled rejection fails the run without failing a test, so the report alone says passed. */
+		if (verdict === 'passed' && result.status !== 0) throw new Error(`The run proves nothing: vitest exited with ${result.status}, yet no test failed.\n${output}`);
+		return { verdict, output };
 	} finally {
 		await rm(directory, { recursive: true, force: true });
 	}
