@@ -159,3 +159,8 @@ remain unchanged and continue to compile, route on the first pass and match thei
 
 Read [CONTRIBUTING.md](./CONTRIBUTING.md) before contributing. Maintainer design decisions and review
 remain required; no releases, tags or upstream comments are created by this change.
+
+## Community
+
+[Contributing](./CONTRIBUTING.md) · [Support](./SUPPORT.md) · [Security](./SECURITY.md) ·
+[Code of Conduct](./CODE_OF_CONDUCT.md) · [Maintainers](./MAINTAINERS.md)
