@@ -36,11 +36,20 @@ describe('M2 conversion', () => {
 	});
 
 	it.each([[false, false], [true, false], [false, true], [true, true]])('preserves battery1 fix=%s invert=%s by terminal and orientation', (fix, invert) => {
-		const result = convert(`\\draw (-2,0) to[R] (0,0) to[battery1${invert ? ',invert,invert' : ''}] (2,0) to[C] (4,0);`, fix ? '[fixbatteries]' : '');
+		const result = convert(`\\draw (-2,0) to[R] (0,0) to[battery1${invert ? ',invert,invert' : ''}] (2,0) to[C] (4,0);`, fix ? '[voltage dir=RP]' : '');
 		const first = fix !== invert ? 'negative' : 'positive', last = first === 'positive' ? 'negative' : 'positive';
 		expect(result.nets).toEqual(canonical([['R1.in'], ['R1.out', `B1.${first}`], [`B1.${last}`, 'C1.in'], ['C1.out']]));
 		expect(result.components[1]).toMatchObject({ kind: 'source', variant: 'battery' });
 		expect('orientation' in result.components[1]! ? result.components[1].orientation : 'right').toBe(first === 'positive' ? 'left' : 'right');
+	});
+
+	it.each([
+		['voltage dir=RP', true], ['voltage dir=EF', true], ['voltage dir=old', false], ['voltage dir=noold', false],
+		['voltage dir=RP,voltage dir=old', false], ['voltage dir=noold,voltage dir=EF', true]
+	])('reads [%s] as fixbatteries=%s, the last voltage dir winning', (options, fix) => {
+		const result = convert('\\draw (-2,0) to[R] (0,0) to[battery1] (2,0);', `[${options}]`);
+		const first = fix ? 'negative' : 'positive', last = fix ? 'positive' : 'negative';
+		expect(result.nets).toEqual(canonical([['R1.in'], ['R1.out', `B1.${first}`], [`B1.${last}`]]));
 	});
 
 	it('swaps passive terminals on invert and preserves labels and IDs', () => {

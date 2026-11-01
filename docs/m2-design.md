@@ -41,14 +41,15 @@ schemd/circuitikz#2 and accepted there; schemd/circuitikz#3 wrote them into REQU
 The exact inspected upstream revisions and shape references are retained in implementation-audit.md.
 M2 mappings cite CircuiTikZ `tex/pgfcircbipoles.tex`: zigzag/square resistors, capacitor, inductors and
 Battery 1; `tex/pgfcircpath.tex` establishes inverted xscale. In Battery 1's default branch, the long
-plate is at the path start; fixbatteries moves it to the end. Core 1.1 electrical definitions name
+plate is at the path start; CircuiTikZ's fixbatteries flag, set by `voltage dir=RP|EF`
+(`tex/pgfcirc.defines.tex`), moves it to the end. Core 1.1 electrical definitions name
 source ports negative at canonical left and positive at right. Quarter turns follow those semantic
 names. Passive in/out ports are canonical left/right and their fixed span is 84 Schemd units.
 
 ## Tests and fixtures
 
 The original two expected conformance documents are unchanged. Added alias, open-terminal,
-fixbatteries/invert, exact-midpoint, named/relative/corner and cycle-return documents were independently
+voltage dir/invert, exact-midpoint, named/relative/corner and cycle-return documents were independently
 constructed and then compared with conversion; every expected declaration and connection was read.
 Rejection expectations were generated once and read in full, including codes, positions and messages.
 Property tests cover translation, independent statement ordering, wire reversal, determinism and

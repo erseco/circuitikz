@@ -39,13 +39,16 @@ and one-based columns count UTF-16 code units, with a tab counting as one column
 | `battery1` | Battery source, `positive` → `negative` by default |
 | `short` | Wire; labels and invert on wires are rejected |
 
-Environment `fixbatteries` reverses battery1 polarity. `invert` reverses a component's terminal order;
+Environment `voltage dir=RP` or `voltage dir=EF` reverses battery1 polarity, and `voltage dir=old` or
+`noold` restores it; the last one wins. `fixbatteries` is CircuiTikZ's internal flag, not a key, so
+it is rejected, and the package options `RPvoltages`/`EFvoltages` sit in the preamble, which the
+converter never sees. `invert` reverses a component's terminal order;
 repeating invert is idempotent, matching CircuiTikZ. Component orientation is derived from semantic
 ports and the path direction. Diagonal, zero-length or sub-0.84-unit component segments are errors.
 Body collisions and labels outside the fixed canvas are reported as geometry errors before emission.
 
 ```tex
-\begin{circuitikz}[fixbatteries]
+\begin{circuitikz}[voltage dir=RP]
 \coordinate (A) at (0cm,0cm);
 \draw (A) to[R=$R_1$] ++(2,0) coordinate (B)
   |- +(1,2) -- ++(0,3) to[C=100] (0,3) -| (A);
@@ -77,7 +80,7 @@ are rejected instead of being printed literally. Labels are validated before DSL
 Only explicitly enumerated presentation keys are ignored: `mirror`, `thick`, `thin`, `dashed`,
 `color=`, `line width=`, `-*`, `*-`, `*-*`, `-o`, `o-`, `o-o`. Each produces a warning; `strict: true`
 escalates it to an error. Unknown keys, voltage/current/flow annotations and component naming keys
-are errors. Environment/draw options use the same pure-presentation list, plus environment fixbatteries.
+are errors. Environment/draw options use the same pure-presentation list, plus environment `voltage dir`.
 Empty option entries such as `[]` or `[R,]` are ignored, as pgfkeys does.
 
 Unsupported: whole LaTeX documents, macros/expansion, scopes, styles, loops, arbitrary nodes, polar

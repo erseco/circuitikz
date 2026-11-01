@@ -1,0 +1,10 @@
+[
+  {
+    "code": "unsupported",
+    "message": "Option fixbatteries is not supported; use the documented CircuiTikZ subset instead.",
+    "line": 1,
+    "column": 20,
+    "endColumn": 32,
+    "severity": "error"
+  }
+]

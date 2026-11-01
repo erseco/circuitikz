@@ -12,9 +12,17 @@ import type { Key } from './ast.js';
 import type { Segment } from './circuit.js';
 import type { CircuitikzConversion, ConvertCircuitikzOptions } from './types.js';
 
+/* CircuiTikZ's `voltage dir` choices: `RP` and `EF` set its internal fixbatteries flag, `old` and `noold` clear it. */
+const VOLTAGE_DIRS = new Map([['RP', true], ['EF', true], ['old', false], ['noold', false]]);
+
+/** The fixbatteries flag a `voltage dir=…` key sets, or undefined for any other key. */
+function voltageDir(key: Key): boolean | undefined {
+	return key.name === 'voltage dir' && key.value?.length === 1 ? VOLTAGE_DIRS.get(key.value[0]!.value) : undefined;
+}
+
 function keysOf(keys: readonly Key[], diagnostics: Diagnostics, environment: boolean): void {
 	for (const key of keys) {
-		if (environment && key.name === 'fixbatteries' && key.value === undefined) continue;
+		if (environment && voltageDir(key) !== undefined) continue;
 		if (!presentationKey(key, diagnostics)) unsupported(diagnostics, `Option ${key.name}`, key.span);
 	}
 }
@@ -39,7 +47,8 @@ export function convertCircuitikz(source: string, options?: ConvertCircuitikzOpt
 					for (const statement of tree.statements) if (statement.kind === 'draw') keysOf(statement.keys, diagnostics, false);
 					const resolved = resolveCoordinates(tree, diagnostics);
 					const segments: Segment[] = [];
-					const fixed = tree.keys.some((key) => key.name === 'fixbatteries' && key.value === undefined);
+					/* As in CircuiTikZ, the last `voltage dir` wins. */
+					const fixed = tree.keys.map(voltageDir).filter((flag) => flag !== undefined).at(-1) ?? false;
 					for (const segment of resolved) {
 						const spec = segment.operation === 'to' ? partOf(segment.keys, source, fixed, segment.span, diagnostics) : undefined;
 						if (segment.operation === '|-' || segment.operation === '-|') {
