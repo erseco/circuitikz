@@ -20,7 +20,7 @@ type Entry = { types?: string; import?: string };
 const exportsMap = manifest.exports as Record<string, Entry>;
 
 /* Every source file by its path under `src`, without `.ts`: `index`, `parts/index`. */
-const sourceFiles = Object.keys(import.meta.glob('../src/**/*.ts'))
+const sourceFiles = Object.keys(import.meta.glob(['../src/**/*.ts', '!../src/**/*.d.ts']))
 	.map((path) => path.replace('../src/', '').replace(/\.ts$/, ''))
 	.sort();
 
