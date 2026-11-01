@@ -34,7 +34,7 @@ The audit explains design decisions and the implementation sequence. All origina
 | R-3.7 | Preserved M0 | topology and conformance suites; open-terminal conflict reproduced without modifying helper | Existing ten topology mutants |
 | R-3.8 | M1 | README API table, existing type docs, convert doc comment, CHANGELOG | — |
 | R-4.1.1 | M1 | frontend: one environment, surrounding comments, trailing environment; rejections | recovery stops at the environment end |
-| R-4.1.2 | M2 | Environment presentation and fixbatteries honored in conversion | conversion/conformance/graph/verification tests and 86-mutant gate |
+| R-4.1.2 | M2 | Environment presentation and voltage dir RP/EF/old/noold honored in conversion; fixbatteries rejected | conversion/conformance/graph/verification tests and 86-mutant gate |
 | R-4.1.3 | M1 | frontend scanner: comments, escaped percent and unterminated comment | comments end at CR as well as LF; escaped percent does not begin a comment |
 | R-4.1.4 | M1 | frontend scanner exact token arrays, Unicode/tab and line endings | columns count UTF-16 units; CRLF is one newline |
 | R-4.2.1 | M1 | frontend AST and missing delimiters; rejection fixtures for each parser message | statement budget is inclusive |

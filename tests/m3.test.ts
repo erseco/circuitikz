@@ -35,9 +35,9 @@ describe.each(families)('%s family', (alias, kind, prefix, initial, final, varia
 	});
 });
 
-it.each(['battery', 'battery2'])('composes fixbatteries and invert for %s', (alias) => {
+it.each(['battery', 'battery2'])('composes voltage dir=RP and invert for %s', (alias) => {
 	for (const fix of [false, true]) for (const invert of [false, true]) {
-		const result = converted(`\\draw (-2,0) to[R] (0,0) to[${alias}${invert ? ',invert' : ''}] (2,0) to[C] (4,0);`, fix ? '[fixbatteries]' : '');
+		const result = converted(`\\draw (-2,0) to[R] (0,0) to[${alias}${invert ? ',invert' : ''}] (2,0) to[C] (4,0);`, fix ? '[voltage dir=RP]' : '');
 		const positiveAtStart = fix === invert;
 		expect(result.nets).toContainEqual([`B1.${positiveAtStart ? 'positive' : 'negative'}`, 'R1.out']);
 	}

@@ -14,7 +14,7 @@ Core 1.1.0 source revision and semantic port names are pinned in implementation-
 
 | CircuiTikZ | Source shape / rule | Schemd semantics |
 | --- | --- | --- |
-| battery, battery2 | Battery and Battery 2 branches in pgfcircbipoles.tex: default long plate left; fixbatteries long plate right | source type=battery; positive→negative by default; fixbatteries and invert compose |
+| battery, battery2 | Battery and Battery 2 branches in pgfcircbipoles.tex: default long plate left; long plate right once `voltage dir=RP|EF` sets fixbatteries | source type=battery; positive→negative by default; voltage dir and invert compose |
 | D, diode, empty diode, full diode | emptydiode/fulldiode and generated D aliases; cathode bar at res@right | diode; anode→cathode |
 | zD | emptyzdiode/fullzdiode shapes and generated zD aliases; right cathode bar | diode type=zener; anode→cathode |
 | leD | emptylediode/fulllediode, LED arrows and generated leD aliases; same diode cathode convention | diode type=led; anode→cathode |
@@ -23,7 +23,7 @@ Core 1.1.0 source revision and semantic port names are pinned in implementation-
 | node[ground]{} | ground in pgfcircmonopoles.tex has three horizontal earth bars | ground style=earth, one in terminal |
 
 Invert in pgfcircpath.tex sets an inverted flag and a negative xscale. It is idempotent. Four
-orientations and both inversion states are tested for every family; fixbatteries combinations are
+orientations and both inversion states are tested for every family; `voltage dir=RP` combinations are
 pinned for both added batteries. Existing battery1 behavior is unchanged.
 
 Ground has a unary graph incidence rather than a synthetic two-terminal component edge. Its

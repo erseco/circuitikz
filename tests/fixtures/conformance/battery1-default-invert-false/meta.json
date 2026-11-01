@@ -1,6 +1,6 @@
 {
   "origin": "REQUIREMENTS.md M2; CircuiTikZ tex/pgfcircbipoles.tex",
-  "note": "Battery 1 positive plate at path start unless fixbatteries; invert composes by XOR; semantic ports determine orientation.",
+  "note": "Battery 1 positive plate at path start unless voltage dir=RP|EF sets fixbatteries; invert composes by XOR; semantic ports determine orientation.",
   "fence": "schemd bounds=\"760x160\" title=\"Converted CircuiTikZ circuit\"",
   "connectivity": [
     [
@@ -8,10 +8,10 @@
     ],
     [
       "R1.out",
-      "B1.negative"
+      "B1.positive"
     ],
     [
-      "B1.positive",
+      "B1.negative",
       "C1.in"
     ],
     [
