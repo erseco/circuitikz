@@ -162,3 +162,8 @@ without Node/DOM globals. It is not a real-browser integration run. No releases 
 [Requirements](REQUIREMENTS.md) · [Contributing](CONTRIBUTING.md) · [M2 design](docs/m2-design.md) · [M3 semantics](docs/m3-design.md) ·
 [Traceability](docs/requirements-traceability.md) · [Validation](docs/validation-results.md) ·
 [Initial audit](docs/implementation-audit.md) · [Changelog](CHANGELOG.md)
+
+## Community
+
+[Contributing](./CONTRIBUTING.md) · [Support](./SUPPORT.md) · [Security](./SECURITY.md) ·
+[Code of Conduct](./CODE_OF_CONDUCT.md) · [Maintainers](./MAINTAINERS.md)

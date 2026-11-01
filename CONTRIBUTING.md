@@ -110,3 +110,11 @@ span (R-7.1).
 - A TeX engine, macro expansion, or general TikZ parsing (REQUIREMENTS.md §1.1).
 - A test that reaches coverage without asserting behaviour, or a coverage-ignore comment.
 - A fixture nobody read.
+
+## Package compatibility
+
+After building, `node scripts/check-package.mjs` packs the package, installs that tarball into a
+temporary consumer, imports every public entry under Node and Bun, and compiles a TypeScript
+consumer. CI runs this on Linux, macOS, and Windows under Node 24 and 26. The required `Verify`
+job waits for every consumer case. Release tags must point to a commit already on `main`.
+Publishing consumes the verified tarball; prereleases use npm's `next` tag.
