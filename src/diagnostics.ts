@@ -14,6 +14,7 @@ export class Diagnostics {
 	}
 }
 
-export function limit(d: Diagnostics, resource: string, maximum: number, span: Span): void {
-	d.add('limit', `The ${resource} limit is ${maximum}; split the circuit into smaller environments.`, span);
+/** `advice` says what to write instead, since splitting helps one ceiling and not another. */
+export function limit(d: Diagnostics, resource: string, maximum: number, advice: string, span: Span): void {
+	d.add('limit', `The ${resource} limit is ${maximum}; ${advice}.`, span);
 }

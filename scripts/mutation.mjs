@@ -61,10 +61,17 @@ const mutants = [
 		tests: ['tests/lexer.test.ts']
 	},
 	{
-		name: 'brace budget is checked before further scanning',
+		name: 'a control symbol takes a whole code point',
 		file: 'src/lexer.ts',
-		from: 'depth === LIMITS.braceDepth',
-		to: 'depth > LIMITS.braceDepth',
+		from: 'cursor += source.codePointAt(cursor)! > 0xffff ? 2 : 1;',
+		to: 'cursor += 1;',
+		tests: ['tests/lexer.test.ts']
+	},
+	{
+		name: 'the scan stops at the brace ceiling',
+		file: 'src/lexer.ts',
+		from: "LIMITS.braceDepth, 'use fewer nested braces', token); break; }",
+		to: "LIMITS.braceDepth, 'use fewer nested braces', token); }",
 		tests: ['tests/lexer.test.ts']
 	},
 	{

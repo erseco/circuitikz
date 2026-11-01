@@ -35,7 +35,9 @@ export function scan(source: string, diagnostics: Diagnostics): Token[] {
 			kind = 'command';
 			if (letter(source[cursor] ?? '')) {
 				while (cursor < source.length && letter(source[cursor]!)) cursor += 1;
-			} else if (cursor < source.length && source[cursor] !== '\r' && source[cursor] !== '\n') cursor += 1;
+			} else if (cursor < source.length && source[cursor] !== '\r' && source[cursor] !== '\n') {
+				cursor += source.codePointAt(cursor)! > 0xffff ? 2 : 1;
+			}
 		} else if ('-- ++ |- -|'.split(' ').includes(source.slice(start, start + 2))) cursor += 1;
 		else if (!'{}[](),;=+-|$^*"'.includes(c)) {
 			kind = 'atom';
@@ -45,7 +47,7 @@ export function scan(source: string, diagnostics: Diagnostics): Token[] {
 		const token: Token = { kind, value: source.slice(start, cursor), start, end: cursor, line, column: startColumn, endColumn: column };
 		tokens.push(token);
 		if (c === '{') {
-			if (depth === LIMITS.braceDepth) { limit(diagnostics, 'brace nesting depth', LIMITS.braceDepth, token); break; }
+			if (depth === LIMITS.braceDepth) { limit(diagnostics, 'brace nesting depth', LIMITS.braceDepth, 'use fewer nested braces', token); break; }
 			depth += 1;
 		} else if (c === '}' && depth > 0) depth -= 1;
 	}

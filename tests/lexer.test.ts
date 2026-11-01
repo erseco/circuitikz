@@ -30,6 +30,14 @@ describe('scanner', () => {
 		expect(scan('% comment without newline', d)).toEqual([{ kind: 'eof', value: '', start: 25, end: 25, line: 1, column: 26, endColumn: 26 }]);
 	});
 
+	it('keeps a control symbol outside the BMP whole', () => {
+		const d = new Diagnostics();
+		expect(scan('\\😀', d)).toEqual([
+			{ kind: 'command', value: '\\😀', start: 0, end: 3, line: 1, column: 1, endColumn: 4 },
+			{ kind: 'eof', value: '', start: 3, end: 3, line: 1, column: 4, endColumn: 4 }
+		]);
+	});
+
 	it('checks nesting before scanning the rest of hostile input', () => {
 		const at = new Diagnostics();
 		scan('{'.repeat(LIMITS.braceDepth) + '}'.repeat(LIMITS.braceDepth), at);
@@ -37,7 +45,7 @@ describe('scanner', () => {
 		const over = new Diagnostics();
 		const tokens = scan('{'.repeat(100_000), over);
 		expect(tokens.length).toBe(LIMITS.braceDepth + 2);
-		expect(over.items).toEqual([{ code: 'limit', severity: 'error', message: 'The brace nesting depth limit is 32; split the circuit into smaller environments.', line: 1, column: 33, endColumn: 34 }]);
+		expect(over.items).toEqual([{ code: 'limit', severity: 'error', message: 'The brace nesting depth limit is 32; use fewer nested braces.', line: 1, column: 33, endColumn: 34 }]);
 	});
 
 	it('scans the pathological inputs of R-8.3.4 in linear time', () => {
