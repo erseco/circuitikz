@@ -6,10 +6,18 @@ import { parse } from './parser.js';
 import type { Key } from './ast.js';
 import type { CircuitikzConversion, ConvertCircuitikzOptions } from './types.js';
 
+/* CircuiTikZ's `voltage dir` choices: `RP` and `EF` set its internal fixbatteries flag, `old` and `noold` clear it. */
+const VOLTAGE_DIRS = new Map([['RP', true], ['EF', true], ['old', false], ['noold', false]]);
+
+/** The fixbatteries flag a `voltage dir=…` key sets, or undefined for any other key. */
+function voltageDir(key: Key): boolean | undefined {
+	return key.name === 'voltage dir' && key.value?.length === 1 ? VOLTAGE_DIRS.get(key.value[0]!.value) : undefined;
+}
+
 /** Only keys explicitly listed in R-4.4.2 can be ignored with a warning. */
 function keysOf(keys: readonly Key[], diagnostics: Diagnostics, environment: boolean): void {
 	for (const key of keys) {
-		if (environment && key.name === 'fixbatteries' && key.value === undefined) continue;
+		if (environment && voltageDir(key) !== undefined) continue;
 		if (['mirror', 'thick', 'thin', 'dashed', '-*', '*-', '*-*', '-o', 'o-', 'o-o'].includes(key.name) && key.value === undefined
 			|| ['color', 'line width'].includes(key.name) && key.value !== undefined) presentation(diagnostics, key.name, key.span);
 		else unsupported(diagnostics, `Option ${key.name}`, key.span);

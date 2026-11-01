@@ -168,7 +168,9 @@ Whitespace and `%` comments MAY surround it. Any other text outside it is an `un
 whose message says to pass a single environment.
 
 **R-4.1.2** Environment options in `[...]`: presentation-only keys (R-5.4) give a warning, and
-`fixbatteries` is honoured (R-4.4.3). Every other key is `unsupported`.
+`voltage dir=RP`, `EF`, `old` and `noold` are honoured (R-4.4.3). Every other key is `unsupported`,
+`fixbatteries` included: it is CircuiTikZ's internal flag, not a key. Package options such as
+`RPvoltages` sit in the preamble, which the converter never sees (R-4.1.1).
 
 **R-4.1.3** `%` starts a comment to the end of the line, except when it is escaped as `\%`. Comments
 never reach the output.
@@ -263,14 +265,11 @@ first settle CircuiTikZ's voltage-direction conventions (`voltage dir`, `EFvolta
 | `mirror`, `color=`, `line width=`, `thick`, `thin`, `dashed` | Presentation: a warning |
 | `v`, `v_`, `v^`, `v<`, `v>`, `i`, `i_`, `i^`, `i<`, `i>`, `f`, `name`, `n` and any other key | `unsupported` |
 
-**R-4.4.3** `battery1` draws its long, positive plate at the **start** of its segment unless the
-environment sets `fixbatteries`, which moves it to the end (circuitikz `tex/pgfcircbipoles.tex`,
-shape "Battery 1"). `invert` swaps it again. All four combinations have fixtures.
-
-`@schemd/core` 1.1 draws its battery glyph with the long plate on the `negative` terminal's side, so
-a correct conversion is drawn mirrored until core fixes the glyph. The converter keeps the semantic
-ports and never swaps terminals to make the picture match: R-6 checks connectivity, and the drawing is
-core's to fix (#2 §3).
+**R-4.4.3** `battery1` draws its long, positive plate at the **start** of its segment unless
+CircuiTikZ's `fixbatteries` flag is set, which moves it to the end (circuitikz
+`tex/pgfcircbipoles.tex`, shape "Battery 1"). The environment sets the flag with `voltage dir=RP` or
+`voltage dir=EF` and clears it with `voltage dir=old` or `noold` (`tex/pgfcirc.defines.tex`); the
+last one wins. `invert` swaps the plate again. All four combinations have fixtures.
 
 **R-4.4.4** A component on a segment that is neither horizontal nor vertical is a `geometry` error
 that gives both endpoints. A component on a zero-length segment is a `geometry` error. A component

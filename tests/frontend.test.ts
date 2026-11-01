@@ -287,7 +287,7 @@ describe('public M1 API', () => {
 	});
 
 	it('warns only about explicitly documented presentation keys and escalates in strict mode', () => {
-		const source = '\\begin{circuitikz}[fixbatteries,color=red]\n\\draw[thick,thin,dashed,mirror,line width=1,-*,*-,*-*,-o,o-,o-o] (0,0);\n\\end{circuitikz}';
+		const source = '\\begin{circuitikz}[voltage dir=RP,color=red]\n\\draw[thick,thin,dashed,mirror,line width=1,-*,*-,*-*,-o,o-,o-o] (0,0);\n\\end{circuitikz}';
 		const result = convertCircuitikz(source);
 		expect(result.diagnostics.filter((d) => d.severity === 'warning').map((d) => d.message)).toEqual([
 			'Presentation option color was ignored; schemd draws its own style.',
@@ -296,6 +296,18 @@ describe('public M1 API', () => {
 		const strict = convertCircuitikz(source, { strict: true });
 		expect(strict.diagnostics.every((d) => d.severity === 'error')).toBe(true);
 		expect(strict.diagnostics).toHaveLength(12);
+	});
+
+	it('accepts voltage dir on the environment, the spelling CircuiTikZ compiles, and rejects fixbatteries', () => {
+		/* #7: `fixbatteries` is CircuiTikZ's internal flag; `voltage dir=RP|EF` sets it and `old|noold` clear it. */
+		const options = (environment: string, draw = '') => convertCircuitikz(`\\begin{circuitikz}[${environment}]\n\\draw${draw} (0,0) -- (2,0);\n\\end{circuitikz}`)
+			.diagnostics.filter((d) => d.message.startsWith('Option')).map((d) => d.message);
+		for (const value of ['RP', 'EF', 'old', 'noold']) expect(options(`voltage dir=${value}`), value).toEqual([]);
+		expect(options('voltage dir=RP,voltage dir=old')).toEqual([]);
+		const rejected = (name: string) => `Option ${name} is not supported; use the documented CircuiTikZ subset instead.`;
+		expect(options('fixbatteries')).toEqual([rejected('fixbatteries')]);
+		for (const value of ['voltage dir', 'voltage dir=rp', 'voltage dir=RP EF']) expect(options(value), value).toEqual([rejected('voltage dir')]);
+		expect(options('', '[voltage dir=RP]')).toEqual([rejected('voltage dir')]);
 	});
 
 	it('rejects unknown and malformed options instead of dropping them', () => {

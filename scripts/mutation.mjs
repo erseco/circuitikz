@@ -149,6 +149,27 @@ const mutants = [
 		tests: ['tests/frontend.test.ts']
 	},
 	{
+		name: 'the environment takes voltage dir, not the internal fixbatteries flag',
+		file: 'src/convert.ts',
+		from: "key.name === 'voltage dir'",
+		to: "key.name === 'fixbatteries'",
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'voltage dir takes exactly one choice',
+		file: 'src/convert.ts',
+		from: 'key.value?.length === 1',
+		to: 'key.value !== undefined',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'voltage dir old is a known choice',
+		file: 'src/convert.ts',
+		from: "['old', false], ",
+		to: '',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
 		name: 'the source limit is inclusive',
 		file: 'src/convert.ts',
 		from: 'source.length > settings.maxSourceLength',

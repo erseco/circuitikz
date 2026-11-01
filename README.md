@@ -101,7 +101,8 @@ The parser records `--`, `|-`, `-|` and `to[...]`; graph expansion of corner ope
 to M2. Other path operations and statement commands are rejected. Recovery skips to the next
 semicolon outside braces, or the environment end, so independent statement errors remain visible.
 
-Environment `fixbatteries` is retained for M2. The explicitly enumerated pure presentation keys
+Environment `voltage dir=RP|EF|old|noold` is accepted and honoured in M2; `fixbatteries` is not a
+CircuiTikZ key and is rejected. The explicitly enumerated pure presentation keys
 `mirror`, `thick`, `thin`, `dashed`, `color=`, `line width=`, `-*`, `*-`, `*-*`, `-o`, `o-`, and `o-o`
 produce warnings in environment/draw options; `strict` escalates them. Other environment/draw keys
 are rejected. M1 only parses component option groups structurally: R-4.4/R-4.5 semantic validation,
