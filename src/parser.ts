@@ -121,7 +121,7 @@ class Parser {
 		const elements: PathElement[] = [{ kind: 'move', at: first, span: first.span }];
 		while (!this.boundary() && !this.at(';')) {
 			const operation = this.token;
-			if (elements.length === LIMITS.pathElements) { limit(this.diagnostics, 'path elements per statement', LIMITS.pathElements, operation); return undefined; }
+			if (elements.length === LIMITS.pathElements) { limit(this.diagnostics, 'path elements per statement', LIMITS.pathElements, 'split the path into several \\draw statements', operation); return undefined; }
 			if (this.accept('coordinate')) {
 				const name = this.name();
 				if (name === undefined) return undefined;
@@ -146,7 +146,7 @@ class Parser {
 				if (parsed === undefined) return undefined;
 				componentKeys = parsed;
 				if (!parsed.some((key) => key.name === 'short')) {
-					if (this.components === LIMITS.components) { limit(this.diagnostics, 'components', LIMITS.components, operation); return undefined; }
+					if (this.components === LIMITS.components) { limit(this.diagnostics, 'components', LIMITS.components, 'split the circuit across several documents', operation); return undefined; }
 					this.components += 1;
 				}
 			}
@@ -168,7 +168,7 @@ class Parser {
 		const statements: Statement[] = [];
 		let count = 0;
 		while (!this.boundary()) {
-			if (count === LIMITS.statements) { limit(this.diagnostics, 'statements', LIMITS.statements, this.token); return undefined; }
+			if (count === LIMITS.statements) { limit(this.diagnostics, 'statements', LIMITS.statements, 'split the circuit across several documents', this.token); return undefined; }
 			count += 1;
 			const statement = this.statement();
 			if (statement === undefined) this.recover();
