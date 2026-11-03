@@ -14,7 +14,7 @@ import manifest from '../package.json';
  * If unsure, a module is internal. Promoting later is easy; un-promoting is a
  * breaking change.
  */
-const INTERNAL_MODULES = new Set(['topology']);
+const INTERNAL_MODULES = new Set(['ast', 'diagnostics', 'lexer', 'limits', 'topology']);
 
 type Entry = { types?: string; import?: string };
 const exportsMap = manifest.exports as Record<string, Entry>;
