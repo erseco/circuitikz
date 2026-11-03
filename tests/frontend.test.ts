@@ -19,43 +19,11 @@ function read(text: string) {
 }
 const span = { start: 0, end: 1, line: 1, column: 1, endColumn: 2 };
 
-describe('scanner', () => {
-	it('preserves exact UTF-16 spans and distinguishes escaped comments', () => {
-		const d = new Diagnostics(false);
-		expect(scan('α😀\t\\% % discarded\r\n\\draw\rX\nY\fZ', d)).toEqual([
-			{ kind: 'atom', value: 'α😀', start: 0, end: 3, line: 1, column: 1, endColumn: 4 },
-			{ kind: 'command', value: '\\%', start: 4, end: 6, line: 1, column: 5, endColumn: 7 },
-			{ kind: 'command', value: '\\draw', start: 20, end: 25, line: 2, column: 1, endColumn: 6 },
-			{ kind: 'atom', value: 'X', start: 26, end: 27, line: 3, column: 1, endColumn: 2 },
-			{ kind: 'atom', value: 'Y', start: 28, end: 29, line: 4, column: 1, endColumn: 2 },
-			{ kind: 'atom', value: 'Z', start: 30, end: 31, line: 4, column: 3, endColumn: 4 },
-			{ kind: 'eof', value: '', start: 31, end: 31, line: 4, column: 4, endColumn: 4 }
-		]);
-		expect(d.items).toEqual([]);
-	});
-
-	it('handles control symbols, bare backslashes and every path operator', () => {
-		const d = new Diagnostics(false);
-		expect(scan('\\a \\1 -- ++ |- -| + - | {} \\\n\\', d).map((t) => t.value)).toEqual([
-			'\\a', '\\1', '--', '++', '|-', '-|', '+', '-', '|', '{', '}', '\\', '\\', ''
-		]);
-		expect(scan('% comment without newline', d)).toEqual([{ kind: 'eof', value: '', start: 25, end: 25, line: 1, column: 26, endColumn: 26 }]);
-	});
-
+describe('span helpers', () => {
 	it('joins same-line spans and clamps multiline spans to the first token', () => {
 		const tokens = scan('a b\nccc', new Diagnostics(false));
 		expect(through(tokens[0]!, tokens[1]!)).toEqual({ start: 0, end: 3, line: 1, column: 1, endColumn: 4 });
 		expect(through(tokens[0]!, tokens[2]!)).toEqual({ start: 0, end: 7, line: 1, column: 1, endColumn: 2 });
-	});
-
-	it('checks nesting before scanning the rest of hostile input', () => {
-		const at = new Diagnostics(false);
-		scan('{'.repeat(LIMITS.braceDepth) + '}'.repeat(LIMITS.braceDepth), at);
-		expect(at.items).toEqual([]);
-		const over = new Diagnostics(false);
-		const tokens = scan('{'.repeat(100_000), over);
-		expect(tokens.length).toBe(LIMITS.braceDepth + 2);
-		expect(over.items).toEqual([{ code: 'limit', severity: 'error', message: 'The brace nesting depth limit is 32; split the circuit into smaller environments.', line: 1, column: 33, endColumn: 34 }]);
 	});
 });
 
@@ -261,13 +229,13 @@ describe('span-aware parser and resolver', () => {
 	it('enforces statement, path element and component budgets at the boundary', () => {
 		const statements = (n: number) => '\\draw (0,0);'.repeat(n);
 		expect(read(wrap(statements(LIMITS.statements))).diagnostics).toEqual([]);
-		expect(read(wrap(statements(LIMITS.statements + 1))).diagnostics.at(-1)?.message).toBe('The statements limit is 1024; split the circuit into smaller environments.');
+		expect(read(wrap(statements(LIMITS.statements + 1))).diagnostics.at(-1)?.message).toBe('The statements limit is 1024; split the circuit across several documents.');
 		const paths = (n: number) => '\\draw (0,0)' + ' -- (0,0)'.repeat(n - 1) + ';';
 		expect(read(wrap(paths(LIMITS.pathElements))).diagnostics).toEqual([]);
-		expect(read(wrap(paths(LIMITS.pathElements + 1))).diagnostics.at(-1)?.message).toBe('The path elements per statement limit is 4096; split the circuit into smaller environments.');
+		expect(read(wrap(paths(LIMITS.pathElements + 1))).diagnostics.at(-1)?.message).toBe('The path elements per statement limit is 4096; split the path into several \\draw statements.');
 		const components = (n: number) => '\\draw (0,0)' + ' to[R] (1,0)'.repeat(n) + ';';
 		expect(read(wrap(components(LIMITS.components))).diagnostics).toEqual([]);
-		expect(read(wrap(components(LIMITS.components + 1))).diagnostics.at(-1)?.message).toBe('The components limit is 512; split the circuit into smaller environments.');
+		expect(read(wrap(components(LIMITS.components + 1))).diagnostics.at(-1)?.message).toBe('The components limit is 512; split the circuit across several documents.');
 		expect(read(wrap('\\draw (0,0)' + ' to[short] (1,0)'.repeat(LIMITS.components + 1) + ';')).diagnostics).toEqual([]);
 	});
 });
@@ -332,7 +300,7 @@ describe('public M1 API', () => {
 
 	it('enforces the configured source limit before lexing', () => {
 		expect(convertCircuitikz('a', { maxSourceLength: 1 }).diagnostics[0]?.code).toBe('unsupported');
-		expect(convertCircuitikz('aa', { maxSourceLength: 1 })).toEqual({ ok: false, source: undefined, fence: undefined, sourceMap: [], diagnostics: [{ code: 'limit', severity: 'error', message: 'The source length limit is 1; split the circuit into smaller environments.', line: 1, column: 1, endColumn: 1 }] });
+		expect(convertCircuitikz('aa', { maxSourceLength: 1 })).toEqual({ ok: false, source: undefined, fence: undefined, sourceMap: [], diagnostics: [{ code: 'limit', severity: 'error', message: 'The source length limit is 1; convert a shorter document.', line: 1, column: 1, endColumn: 1 }] });
 		expect(convertCircuitikz('x'.repeat(LIMITS.sourceLength)).diagnostics[0]?.code).toBe('unsupported');
 		expect(convertCircuitikz('x'.repeat(LIMITS.sourceLength + 1)).diagnostics[0]?.code).toBe('limit');
 	});

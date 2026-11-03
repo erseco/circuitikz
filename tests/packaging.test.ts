@@ -14,47 +14,65 @@ import manifest from '../package.json';
  * If unsure, a module is internal. Promoting later is easy; un-promoting is a
  * breaking change.
  */
-const INTERNAL_MODULES = new Set(['topology', 'ast', 'convert', 'coordinates', 'diagnostics', 'lexer', 'limits', 'options', 'parser']);
+const INTERNAL_MODULES = new Set(['ast', 'convert', 'coordinates', 'diagnostics', 'lexer', 'limits', 'options', 'parser', 'topology']);
 
-const sourceModules = Object.keys(import.meta.glob('../src/**/*.ts'))
+type Entry = { types?: string; import?: string };
+const exportsMap = manifest.exports as Record<string, Entry>;
+
+/* Every source file by its path under `src`, without `.ts`: `index`, `parts/index`. */
+const sourceFiles = Object.keys(import.meta.glob(['../src/**/*.ts', '!../src/**/*.d.ts']))
 	.map((path) => path.replace('../src/', '').replace(/\.ts$/, ''))
 	.sort();
 
-const subpaths = Object.keys(manifest.exports).filter((key) => key !== '.');
-const exportedModules = new Set(subpaths.map((key) => key.replace('./', '')));
-const publicModules = new Set(['index', ...exportedModules]);
+/* The source file each subpath, `.` included, resolves to. */
+const exportedFiles = new Map(Object.entries(exportsMap).map(([subpath, entry]) => [subpath, (entry.import ?? '').replace(/^\.\/dist\//, '').replace(/\.js$/, '')]));
+
+/**
+ * Source files neither exported nor internal. Files are compared by path, never
+ * by a normalized name, so `src/parts.ts` beside `src/parts/index.ts`, or
+ * `src/index/index.ts` beside `src/index.ts`, cannot hide behind each other.
+ */
+const unclassified = (files: readonly string[], exported: ReadonlySet<string>, internal: ReadonlySet<string>) =>
+	files.filter((file) => !exported.has(file) && !internal.has(file));
 
 describe('package exports', () => {
 	it('finds the source modules it is meant to police', () => {
-		expect(sourceModules).toContain('index');
-		expect(sourceModules).toContain('types');
+		expect(sourceFiles).toContain('index');
+		expect(sourceFiles).toContain('types');
 	});
 
 	it('gives every public source module an importable subpath', () => {
-		const missing = sourceModules.filter((module) => !INTERNAL_MODULES.has(module) && !publicModules.has(module));
+		const missing = unclassified(sourceFiles, new Set(exportedFiles.values()), INTERNAL_MODULES);
 		expect(missing, `public modules with no exports entry: ${missing.join(', ')}`).toEqual([]);
 	});
 
+	it('keeps a flat file and a directory index of the same name apart', () => {
+		/* Review on #4: each of these once merged into one name and slipped through. */
+		expect(unclassified(['index', 'index/index'], new Set(['index']), new Set())).toEqual(['index/index']);
+		expect(unclassified(['parts', 'parts/index'], new Set(['parts/index']), new Set())).toEqual(['parts']);
+		expect(unclassified(['parts', 'parts/index'], new Set(['parts']), new Set(['parts/index']))).toEqual([]);
+	});
+
 	it('classifies a module as public or internal, never both', () => {
-		expect([...publicModules].filter((module) => INTERNAL_MODULES.has(module))).toEqual([]);
+		expect([...exportedFiles.values()].filter((file) => INTERNAL_MODULES.has(file))).toEqual([]);
 	});
 
 	it('lists no internal module that does not exist', () => {
-		const stale = [...INTERNAL_MODULES].filter((module) => !sourceModules.includes(module));
+		const stale = [...INTERNAL_MODULES].filter((module) => !sourceFiles.includes(module));
 		expect(stale, `INTERNAL_MODULES names missing modules: ${stale.join(', ')}`).toEqual([]);
 	});
 
 	it('points every subpath at the module it names', () => {
-		for (const subpath of subpaths) {
-			const name = subpath.replace('./', '');
-			const entry = (manifest.exports as Record<string, { types?: string; import?: string }>)[subpath]!;
-			expect(entry.import, `${subpath} points at the wrong module`).toBe(`./dist/${name}.js`);
-			expect(entry.types, `${subpath} types point at the wrong module`).toBe(`./dist/${name}.d.ts`);
+		/* `src/index.ts` is the `.` entry; `./parts` may be `src/parts.ts` or `src/parts/index.ts`. */
+		for (const [subpath, file] of exportedFiles) {
+			const name = subpath === '.' ? 'index' : subpath.replace('./', '');
+			expect([name, `${name}/index`], `${subpath} points at the wrong module`).toContain(file);
+			expect(exportsMap[subpath]!.types, `${subpath} types point at the wrong module`).toBe(`./dist/${file}.d.ts`);
 		}
 	});
 
 	it('exports no subpath without a source module behind it', () => {
-		const orphans = [...exportedModules].filter((name) => !sourceModules.includes(name));
+		const orphans = [...exportedFiles].filter(([, file]) => !sourceFiles.includes(file)).map(([subpath]) => subpath);
 		expect(orphans, `subpaths with no source module: ${orphans.join(', ')}`).toEqual([]);
 	});
 

@@ -482,7 +482,12 @@ protects nothing, and review rejects it.
 ### 8.2 Mutation
 
 **R-8.2.1** `scripts/mutation.mjs` lists named mutants. Each one is a substitution that breaks one
-stated property, together with the suites that must fail. A surviving mutant fails CI.
+stated property, together with the suites that must fail. A surviving mutant fails CI. The suites
+pass before any mutant is applied. A mutant is killed when any of its tests fails; a run that
+outlives its time limit counts as killed and is reported as a timeout. A run in which a file fails
+to load, no test runs, vitest writes no report, or vitest fails while every test passes proves
+nothing and stops the gate. *`tests/mutation-run.test.ts` checks
+these verdicts.*
 
 **R-8.2.2** Every module in `src` has at least one mutant, except logic-free modules listed in
 `EXEMPT`. *Enforced by the script.*
@@ -545,8 +550,9 @@ in `scripts/check-bundle-size.mjs` saying what was added and how many bytes it m
 
 ### 8.6 Packaging and runtime
 
-**R-8.6.1** `tests/packaging.test.ts` holds. Every `src` module is either an `exports` subpath or
-listed as internal.
+**R-8.6.1** `tests/packaging.test.ts` holds. Every `src` module, nested ones included, is either
+an `exports` subpath or listed as internal. `src/index.ts` is the `.` entry, and `./<dir>`
+resolves to `src/<dir>.ts` or `src/<dir>/index.ts`. Declaration files are not modules.
 
 **R-8.6.2** CI builds the package, runs `npm pack --dry-run`, and imports the built `dist/index.js`
 in Node.js 24 as a smoke test. From M2 on, the smoke test converts the issue example from the built

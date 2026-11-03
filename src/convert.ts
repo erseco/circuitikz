@@ -26,7 +26,7 @@ export function convertCircuitikz(source: string, options?: ConvertCircuitikzOpt
 	const settings = optionsOf(options);
 	const diagnostics = new Diagnostics(settings.strict);
 	if (source.length > settings.maxSourceLength) {
-		limit(diagnostics, 'source length', settings.maxSourceLength, { start: 0, end: 0, line: 1, column: 1, endColumn: 1 });
+		limit(diagnostics, 'source length', settings.maxSourceLength, 'convert a shorter document', { start: 0, end: 0, line: 1, column: 1, endColumn: 1 });
 	} else {
 		const tokens = scan(source, diagnostics);
 		if (diagnostics.items.length === 0) {

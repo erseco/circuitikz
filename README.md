@@ -118,7 +118,7 @@ and brace nesting depth 32. A limit is inclusive. Junction construction and its 
 | `syntax` | Missing delimiter, malformed options or excessive precision | Correct the named token or decimal |
 | `unsupported` | Environment, statement, path, numeric form, key, or the pending-conversion marker | Use the documented grammar; await M2 for actual conversion |
 | `reference` | Undefined or repeated named coordinate | Define first, or rename the duplicate |
-| `limit` | Resource budget or exact-integer overflow | Split the circuit or reduce coordinates |
+| `limit` | Resource budget or exact-integer overflow | Follow the advice in the message, or use smaller coordinates |
 | `geometry` | Reserved for M2 geometry checks | Not produced by M1 |
 | `internal` | Reserved for M2 compiler/oracle verification failures | Not produced by M1 |
 
