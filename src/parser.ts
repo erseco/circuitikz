@@ -110,7 +110,7 @@ class Parser {
 	}
 
 	private component(span: Span): boolean {
-		if (this.components === LIMITS.components) { limit(this.diagnostics, 'components', LIMITS.components, span); return false; }
+		if (this.components === LIMITS.components) { limit(this.diagnostics, 'components', LIMITS.components, 'split the circuit across several documents', span); return false; }
 		this.components += 1; return true;
 	}
 
@@ -131,7 +131,7 @@ class Parser {
 		const elements: PathElement[] = [{ kind: 'move', at: first, span: first.span }];
 		while (!this.boundary() && !this.at(';')) {
 			const operation = this.token;
-			if (elements.length === LIMITS.pathElements) { limit(this.diagnostics, 'path elements per statement', LIMITS.pathElements, operation); return undefined; }
+			if (elements.length === LIMITS.pathElements) { limit(this.diagnostics, 'path elements per statement', LIMITS.pathElements, 'split the path into several \\draw statements', operation); return undefined; }
 			if (this.accept('node')) {
 				if (!this.at('[')) { unsupported(this.diagnostics, 'node without [ground]{}', operation); return undefined; }
 				const nodeKeys = this.options();
@@ -184,7 +184,7 @@ class Parser {
 		const statements: Statement[] = [];
 		let count = 0;
 		while (!this.boundary()) {
-			if (count === LIMITS.statements) { limit(this.diagnostics, 'statements', LIMITS.statements, this.token); return undefined; }
+			if (count === LIMITS.statements) { limit(this.diagnostics, 'statements', LIMITS.statements, 'split the circuit across several documents', this.token); return undefined; }
 			count += 1;
 			const start = this.cursor;
 			const statement = this.statement();

@@ -28,7 +28,7 @@ export function convertCircuitikz(source: string, options?: ConvertCircuitikzOpt
 	const origin = { start: 0, end: 0, line: 1, column: 1, endColumn: 1 };
 	let beginning = origin;
 	try {
-		if (source.length > settings.maxSourceLength) limit(diagnostics, 'source length', settings.maxSourceLength, origin);
+		if (source.length > settings.maxSourceLength) limit(diagnostics, 'source length', settings.maxSourceLength, 'convert a shorter document', origin);
 		else {
 			const tokens = scan(source, diagnostics);
 			if (diagnostics.items.length === 0) {

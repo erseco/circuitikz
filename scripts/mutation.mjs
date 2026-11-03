@@ -16,12 +16,15 @@
  *
  * A mutant no input can tell apart from the original is equivalent: remove it
  * and say why in the pull request.
+ *
+ * The suites must pass before any mutant is applied. `mutation-run.mjs` gives
+ * each run its verdict (R-8.2.1); `tests/mutation-run.test.ts` checks them.
  */
 import { cp, mkdtemp, readdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
+import { runSuites } from './mutation-run.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -36,6 +39,62 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const EXEMPT = new Set(['src/index.ts', 'src/types.ts', 'src/ast.ts', 'src/circuit.ts']);
 
 const mutants = [
+	{
+		name: 'comments end at CR as well as LF',
+		file: 'src/lexer.ts',
+		from: "while (cursor < source.length && source[cursor] !== '\\r' && source[cursor] !== '\\n')",
+		to: "while (cursor < source.length && source[cursor] !== '\\n')",
+		tests: ['tests/lexer.test.ts']
+	},
+	{
+		name: 'columns count UTF-16 units',
+		file: 'src/lexer.ts',
+		from: 'column += cursor - start;',
+		to: 'column += [...source.slice(start, cursor)].length;',
+		tests: ['tests/lexer.test.ts']
+	},
+	{
+		name: 'CRLF is one newline',
+		file: 'src/lexer.ts',
+		from: "c === '\\r' && source[cursor + 1] === '\\n' ? 2 : 1",
+		to: '1',
+		tests: ['tests/lexer.test.ts']
+	},
+	{
+		name: 'escaped percent does not begin a comment',
+		file: 'src/lexer.ts',
+		from: "kind = 'command';",
+		to: "if (source[cursor] === '%') { cursor = source.length; } kind = 'command';",
+		tests: ['tests/lexer.test.ts']
+	},
+	{
+		name: 'a control symbol takes a whole code point',
+		file: 'src/lexer.ts',
+		from: 'cursor += source.codePointAt(cursor)! > 0xffff ? 2 : 1;',
+		to: 'cursor += 1;',
+		tests: ['tests/lexer.test.ts']
+	},
+	{
+		name: 'the scan stops at the brace ceiling',
+		file: 'src/lexer.ts',
+		from: "LIMITS.braceDepth, 'use fewer nested braces', token); break; }",
+		to: "LIMITS.braceDepth, 'use fewer nested braces', token); }",
+		tests: ['tests/lexer.test.ts']
+	},
+	{
+		name: 'the brace nesting ceiling is 32',
+		file: 'src/limits.ts',
+		from: 'braceDepth: 32',
+		to: 'braceDepth: 33',
+		tests: ['tests/lexer.test.ts']
+	},
+	{
+		name: 'diagnostics sort by line then column',
+		file: 'src/diagnostics.ts',
+		from: 'a.line - b.line || a.column - b.column',
+		to: 'b.line - a.line || a.column - b.column',
+		tests: ['tests/lexer.test.ts']
+	},
 	{
 		name: 'a junction is recognised by its kind',
 		file: 'src/topology.ts',
@@ -107,41 +166,6 @@ const mutants = [
 		tests: ['tests/topology.test.ts']
 	},
 	{
-		name: 'comments end at CR as well as LF',
-		file: 'src/lexer.ts',
-		from: 'while (cursor < source.length && source[cursor] !== \'\\r\' && source[cursor] !== \'\\n\')',
-		to: 'while (cursor < source.length && source[cursor] !== \'\\n\')',
-		tests: ['tests/frontend.test.ts']
-	},
-	{
-		name: 'columns count UTF-16 units',
-		file: 'src/lexer.ts',
-		from: 'column += cursor - start;',
-		to: 'column += [...source.slice(start, cursor)].length;',
-		tests: ['tests/frontend.test.ts']
-	},
-	{
-		name: 'CRLF is one newline',
-		file: 'src/lexer.ts',
-		from: 'c === \'\\r\' && source[cursor + 1] === \'\\n\' ? 2 : 1',
-		to: '1',
-		tests: ['tests/frontend.test.ts']
-	},
-	{
-		name: 'escaped percent does not begin a comment',
-		file: 'src/lexer.ts',
-		from: 'kind = \'command\';',
-		to: 'if (source[cursor] === \'%\') { cursor = source.length; } kind = \'command\';',
-		tests: ['tests/frontend.test.ts']
-	},
-	{
-		name: 'brace budget is checked before further scanning',
-		file: 'src/lexer.ts',
-		from: 'depth === LIMITS.braceDepth',
-		to: 'depth > LIMITS.braceDepth',
-		tests: ['tests/frontend.test.ts']
-	},
-	{
 		name: 'multiline spans stay on the first line',
 		file: 'src/lexer.ts',
 		from: 'first.line === last.line ? last.endColumn : first.endColumn',
@@ -160,13 +184,6 @@ const mutants = [
 		file: 'src/diagnostics.ts',
 		from: 'warning && !this.strict ? \'warning\' : \'error\'',
 		to: 'warning ? \'warning\' : \'error\'',
-		tests: ['tests/frontend.test.ts']
-	},
-	{
-		name: 'diagnostics sort by line then column',
-		file: 'src/diagnostics.ts',
-		from: 'a.line - b.line || a.column - b.column',
-		to: 'b.line - a.line || a.column - b.column',
 		tests: ['tests/frontend.test.ts']
 	},
 	{
@@ -443,27 +460,9 @@ try {
 	for (const path of ['src', 'tests']) await cp(join(root, path), join(sandbox, path), { recursive: true });
 	for (const path of ['package.json', 'tsconfig.json', 'vitest.config.ts']) await cp(join(root, path), join(sandbox, path));
 	await symlink(join(root, 'node_modules'), join(sandbox, 'node_modules'), 'dir');
-	const vitest = join(root, 'node_modules', 'vitest', 'vitest.mjs');
 	const survivors = [];
-	const reportPath = join(sandbox, 'mutation-report.json');
-	const run = async (tests) => {
-		await rm(reportPath, { force: true });
-		const result = spawnSync(process.execPath, [vitest, 'run', ...tests, '--reporter=json', `--outputFile=${reportPath}`], {
-			cwd: sandbox,
-			env: { ...process.env, FORCE_COLOR: '0' },
-			encoding: 'utf8',
-			timeout: 45_000
-		});
-		if (result.error !== undefined) throw result.error;
-		const report = JSON.parse(await readFile(reportPath, 'utf8'));
-		if (report.numTotalTests === 0 || result.status !== 0 && report.numFailedTests === 0) {
-			throw new Error(`Mutation run failed without an assertion failure: ${result.stdout}${result.stderr}`);
-		}
-		return { result, report };
-	};
-	const baseline = await run([...new Set(mutants.flatMap((mutant) => mutant.tests))]);
-	if (baseline.result.status !== 0 || !baseline.report.success) throw new Error('Mutation baseline is not green; fix the tests first.');
-	console.log(`BASELINE  ${baseline.report.numPassedTests} assertions-bearing tests pass before mutation`);
+	const baseline = await runSuites(sandbox, [...new Set(mutants.flatMap((mutant) => mutant.tests))]);
+	if (baseline.verdict !== 'passed') throw new Error(`Mutation baseline is not green (${baseline.verdict}); fix the tests first.\n${baseline.output}`);
 
 	for (const mutant of mutants) {
 		const path = join(sandbox, mutant.file);
@@ -474,13 +473,16 @@ try {
 		}
 		await writeFile(path, original.replace(mutant.from, mutant.to));
 		let result;
-		try { ({ result } = await run(mutant.tests)); }
-		finally { await writeFile(path, original); }
-		if (result.status === 0) {
-			survivors.push({ mutant, output: `${result.stdout}${result.stderr}` });
+		try {
+			result = await runSuites(sandbox, mutant.tests);
+		} finally {
+			await writeFile(path, original);
+		}
+		if (result.verdict === 'passed') {
+			survivors.push({ mutant, output: result.output });
 			console.error(`SURVIVED  ${mutant.name}`);
 		} else {
-			console.log(`KILLED    ${mutant.name}`);
+			console.log(`${result.verdict === 'timeout' ? 'TIMEOUT ' : 'KILLED  '}  ${mutant.name}`);
 		}
 	}
 
