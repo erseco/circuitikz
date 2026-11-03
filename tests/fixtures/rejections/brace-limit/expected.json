@@ -1,0 +1,10 @@
+[
+  {
+    "code": "limit",
+    "message": "The brace nesting depth limit is 32; use fewer nested braces.",
+    "line": 1,
+    "column": 33,
+    "endColumn": 34,
+    "severity": "error"
+  }
+]

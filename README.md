@@ -54,10 +54,13 @@ if (result.ok) {
 }
 ```
 
-Available now: the topology oracle.
+Available now: the parser and the topology oracle. `convertCircuitikz` reads the TeX and reports every
+problem it finds, but it does not convert yet. For input with no problem, it returns a single
+`unsupported` error saying so. Named coordinates are not resolved yet either.
 
 | Export | What it does |
 | --- | --- |
+| `convertCircuitikz(tex, options?)` | Parse one `circuitikz` environment and return its diagnostics; `ok` is always `false` until M2 |
 | `connectivityOf(netlist)` | Canonical connectivity of a schemd netlist: sorted nets of `ID.port`, with junctions left out |
 | `connectivityDifference(expected, actual)` | The first difference between two connectivities, as a sentence, or `undefined` |
 | `canonical(nets)` | Sort and deduplicate a connectivity by code unit |

@@ -1,0 +1,10 @@
+[
+  {
+    "code": "limit",
+    "message": "The coordinate exceeds the exact integer range; use smaller coordinates or relative offsets.",
+    "line": 2,
+    "column": 8,
+    "endColumn": 25,
+    "severity": "error"
+  }
+]

@@ -1,0 +1,10 @@
+[
+  {
+    "code": "unsupported",
+    "message": "Coordinate name A.north is not supported; use the documented CircuiTikZ subset instead.",
+    "line": 2,
+    "column": 14,
+    "endColumn": 21,
+    "severity": "error"
+  }
+]

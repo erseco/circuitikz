@@ -1,0 +1,10 @@
+[
+  {
+    "code": "syntax",
+    "message": "Expected at; correct the statement before converting it.",
+    "line": 2,
+    "column": 17,
+    "endColumn": 18,
+    "severity": "error"
+  }
+]

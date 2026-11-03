@@ -1,0 +1,10 @@
+[
+  {
+    "code": "unsupported",
+    "message": "Presentation option thick was ignored; schemd draws its own style.",
+    "line": 2,
+    "column": 7,
+    "endColumn": 12,
+    "severity": "error"
+  }
+]

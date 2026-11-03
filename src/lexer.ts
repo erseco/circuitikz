@@ -1,10 +1,28 @@
-import type { Token } from './ast.js';
+import type { Span, Token } from './ast.js';
 import { Diagnostics, limit } from './diagnostics.js';
 import { LIMITS } from './limits.js';
 
 /** ASCII control words are TeX commands; all offsets count UTF-16 units. */
-function letter(value: string): boolean {
+export function letter(value: string): boolean {
 	return value >= 'A' && value <= 'Z' || value >= 'a' && value <= 'z';
+}
+
+/** Join spans without inventing an end column on a later line. */
+export function through(first: Span, last: Span): Span {
+	return { start: first.start, end: last.end, line: first.line, column: first.column,
+		endColumn: first.line === last.line ? last.endColumn : first.endColumn };
+}
+
+/** Literal token text, with source gaps retained as word boundaries. */
+export function textOf(tokens: readonly Token[]): string {
+	const parts: string[] = [];
+	let end = -1;
+	for (const token of tokens) {
+		if (end >= 0 && token.start > end) parts.push(' ');
+		parts.push(token.value);
+		end = token.end;
+	}
+	return parts.join('');
 }
 
 /** Bounded scanner. Comments and whitespace are consumed once and never emitted. */

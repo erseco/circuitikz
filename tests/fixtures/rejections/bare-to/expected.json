@@ -1,0 +1,10 @@
+[
+  {
+    "code": "unsupported",
+    "message": "to without [...] is not supported; use the documented CircuiTikZ subset instead.",
+    "line": 2,
+    "column": 13,
+    "endColumn": 15,
+    "severity": "error"
+  }
+]

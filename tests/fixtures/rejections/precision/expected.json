@@ -1,0 +1,10 @@
+[
+  {
+    "code": "syntax",
+    "message": "0.001 has more than two decimal places; use at most two decimal places without rounding.",
+    "line": 2,
+    "column": 8,
+    "endColumn": 13,
+    "severity": "error"
+  }
+]

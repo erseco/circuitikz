@@ -20,9 +20,11 @@ const BUDGETS = [
 		label: 'Package bundle (every public export, @schemd/core external)',
 		module: '../src/index.ts',
 		entry: (path) => `import * as converter from ${JSON.stringify(path)};globalThis.schemdCircuitikz=converter;`,
-		/* 1 KiB at 0.0.0: the topology oracle and nothing else. */
-		maxGzipBytes: 1 * 1024,
-		maxBrotliBytes: 1 * 1024
+		/* M1's budget from R-8.5.4. 0.0.0 measured 538 B gzip / 455 B brotli. The
+		   parser, coordinate literals, host options and convertCircuitikz measure
+		   4138 B gzip / 3686 B brotli; the coordinate resolver still has to fit. */
+		maxGzipBytes: 5 * 1024,
+		maxBrotliBytes: 5 * 1024
 	}
 ];
 

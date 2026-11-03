@@ -1,0 +1,10 @@
+[
+  {
+    "code": "limit",
+    "message": "The source length limit is 1; convert a shorter document.",
+    "line": 1,
+    "column": 1,
+    "endColumn": 1,
+    "severity": "error"
+  }
+]
