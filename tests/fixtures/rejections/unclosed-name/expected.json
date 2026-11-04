@@ -1,0 +1,18 @@
+[
+  {
+    "code": "syntax",
+    "message": "Expected ); correct the statement before converting it.",
+    "line": 3,
+    "column": 1,
+    "endColumn": 12,
+    "severity": "error"
+  },
+  {
+    "code": "unsupported",
+    "message": "Coordinate name B.north is not supported; use the documented CircuiTikZ subset instead.",
+    "line": 3,
+    "column": 14,
+    "endColumn": 21,
+    "severity": "error"
+  }
+]
