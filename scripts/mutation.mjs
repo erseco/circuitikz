@@ -264,18 +264,53 @@ const mutants = [
 		tests: ['tests/frontend.test.ts', 'tests/rejections.test.ts']
 	},
 	{
-		name: 'recovery stops before a draw or coordinate command',
+		name: 'every reader stops before a draw or coordinate command',
 		file: 'src/parser.ts',
-		from: "if (depth === 0 && (this.at('\\\\draw') || this.at('\\\\coordinate'))) return;",
-		to: "if (depth === 0 && this.at('\\\\draw')) return;",
+		from: "return this.at('\\\\draw') || this.at('\\\\coordinate');",
+		to: "return this.at('\\\\draw');",
 		tests: ['tests/rejections.test.ts']
 	},
 	{
 		name: 'a statement command inside braces does not end recovery',
 		file: 'src/parser.ts',
-		from: "if (depth === 0 && (this.at('\\\\draw')",
-		to: "if ((this.at('\\\\draw')",
+		from: 'if (depth === 0 && this.statementStart()) return;',
+		to: 'if (this.statementStart()) return;',
 		tests: ['tests/frontend.test.ts', 'tests/rejections.test.ts']
+	},
+	{
+		name: 'recovery stops before the next statement command',
+		file: 'src/parser.ts',
+		from: 'if (depth === 0 && this.statementStart()) return;',
+		to: '',
+		tests: ['tests/rejections.test.ts']
+	},
+	{
+		name: 'a coordinate stops before the next statement command',
+		file: 'src/parser.ts',
+		from: "!this.at(';') && !this.at('(') && !this.statementStart())",
+		to: "!this.at(';') && !this.at('('))",
+		tests: ['tests/rejections.test.ts']
+	},
+	{
+		name: 'a name stops before the next statement command',
+		file: 'src/parser.ts',
+		from: "!this.at('(') && !this.at(';') && !this.statementStart())",
+		to: "!this.at('(') && !this.at(';'))",
+		tests: ['tests/rejections.test.ts']
+	},
+	{
+		name: 'an option list stops before the next statement command',
+		file: 'src/parser.ts',
+		from: "depth === 0 && (token.value === ';' || this.statementStart())",
+		to: "depth === 0 && token.value === ';'",
+		tests: ['tests/rejections.test.ts']
+	},
+	{
+		name: 'a statement command inside option braces is option text',
+		file: 'src/parser.ts',
+		from: "depth === 0 && (token.value === ';' || this.statementStart())",
+		to: "(token.value === ';' && depth === 0 || this.statementStart())",
+		tests: ['tests/frontend.test.ts']
 	},
 	{
 		name: 'draw options are checked even when the statement fails',

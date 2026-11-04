@@ -28,6 +28,9 @@ class Parser {
 			&& this.tokens[this.cursor + 2]?.value === 'circuitikz' && this.tokens[this.cursor + 3]?.value === '}';
 	}
 	private boundary(): boolean { return this.token.kind === 'eof' || this.delimiter('\\end'); }
+	/** The next statement's command. A reader stops before it, so a missing delimiter never swallows
+	 * the statement after it (R-4.2.3). */
+	private statementStart(): boolean { return this.at('\\draw') || this.at('\\coordinate'); }
 
 	/** Skip exactly one broken statement, respecting braces and environment end.
 	 * A statement command at depth 0 starts the next statement, so it is never skipped (R-4.2.3). */
@@ -40,7 +43,7 @@ class Parser {
 		}
 		if (this.tokens[this.cursor - 1]!.value === ';' && depth === 0) return;
 		while (!this.boundary()) {
-			if (depth === 0 && (this.at('\\draw') || this.at('\\coordinate'))) return;
+			if (depth === 0 && this.statementStart()) return;
 			const token = this.take();
 			if (token.value === '{') depth += 1;
 			else if (token.value === '}') depth = Math.max(0, depth - 1);
@@ -74,7 +77,7 @@ class Parser {
 				if (depth === 0) { syntax(this.diagnostics, 'a matching { before }', token); return undefined; }
 				depth -= 1;
 			} else if (token.value === '$') math = !math;
-			else if (token.value === '[' || token.value === ';' && depth === 0) break;
+			else if (token.value === '[' || depth === 0 && (token.value === ';' || this.statementStart())) break;
 			parts.push(this.take());
 		}
 		syntax(this.diagnostics, 'a closing ] with balanced braces and math delimiters', this.token); return undefined;
@@ -87,7 +90,7 @@ class Parser {
 		if (this.at('+') || this.at('++')) mode = this.take().value as '+' | '++';
 		if (!this.expect('(')) return undefined;
 		const parts: Token[] = [];
-		while (!this.boundary() && !this.at(')') && !this.at(';') && !this.at('(')) parts.push(this.take());
+		while (!this.boundary() && !this.at(')') && !this.at(';') && !this.at('(') && !this.statementStart()) parts.push(this.take());
 		const last = this.token;
 		if (!this.expect(')')) return undefined;
 		return coordinate(parts, mode, through(start, last), this.diagnostics);
@@ -96,7 +99,7 @@ class Parser {
 	private name(): { readonly name: string; readonly span: Span } | undefined {
 		if (!this.expect('(')) return undefined;
 		const parts: Token[] = [];
-		while (!this.boundary() && !this.at(')') && !this.at('(') && !this.at(';')) parts.push(this.take());
+		while (!this.boundary() && !this.at(')') && !this.at('(') && !this.at(';') && !this.statementStart()) parts.push(this.take());
 		if (parts.length === 0) { syntax(this.diagnostics, 'a literal coordinate name', this.token); return undefined; }
 		const span = through(parts[0]!, parts.at(-1)!);
 		const name = textOf(parts);
