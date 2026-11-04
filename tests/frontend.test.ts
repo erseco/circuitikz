@@ -218,6 +218,38 @@ describe('span-aware parser and resolver', () => {
 		]);
 	});
 
+	it('reads a statement command inside option braces as option text', () => {
+		expect(read(wrap('\\draw[l={\\draw}] (0,0);')).diagnostics).toEqual([]);
+		expect(read(wrap('\\draw[l={\\draw}] (0,0);')).tree?.statements[0]).toMatchObject({ keys: [{ name: 'l' }] });
+	});
+
+	describe('a statement left open never swallows the next one', () => {
+		const open = [
+			'\\draw (0,0) -- (1,0', '\\draw (0,0) -- +(1', '\\draw (0,0', '\\draw (0,0) coordinate (B',
+			'\\coordinate (A', '\\coordinate (A) at (0,0', '\\draw[color=red', '\\draw (0,0) to[R'
+		];
+		const next = [
+			{ text: '\\draw (0,0) arc (1,1);', message: 'arc is not supported; use the documented CircuiTikZ subset instead.', column: 13, endColumn: 16 },
+			{ text: '\\coordinate (B.north) at (0,0);', message: 'Coordinate name B.north is not supported; use the documented CircuiTikZ subset instead.', column: 14, endColumn: 21 }
+		];
+		const separators = [{ name: 'LF', text: '\n', line: 3 }, { name: 'CRLF', text: '\r\n', line: 3 }, { name: 'a comment line', text: '\n% between\n', line: 4 }];
+		const cases = open.flatMap((broken) => next.flatMap((following) => separators.map((separator) => ({ broken, following, separator }))));
+		it.each(cases)('$broken, then $following.text after $separator.name', ({ broken, following, separator }) => {
+			const result = read(`\\begin{circuitikz}\n${broken}${separator.text}${following.text}\n\\end{circuitikz}`);
+			// The open statement gives exactly one error, on its own line or where the next command starts.
+			expect(result.diagnostics).toHaveLength(2);
+			expect(result.diagnostics[0]?.code).toBe('syntax');
+			expect(result.diagnostics[1]).toEqual({ code: 'unsupported', severity: 'error', message: following.message, line: separator.line, column: following.column, endColumn: following.endColumn });
+		});
+	});
+
+	it('keeps an unclosed brace group open to the environment end, as TeX groups it', () => {
+		// The second \\draw is inside the group, so it is option text, not a statement.
+		expect(read(wrap('\\draw[l={x] (0,0);\n\\draw (0,0) arc (1,1);')).diagnostics).toEqual([
+			{ code: 'syntax', severity: 'error', message: 'Expected a closing ] with balanced braces and math delimiters; correct the statement before converting it.', line: 4, column: 1, endColumn: 5 }
+		]);
+	});
+
 	it('resynchronises at the next statement after a missing semicolon', () => {
 		expect(read(wrap('\\draw (0,0) -- (1,0)\n\\draw (0,0) -- (x);')).diagnostics).toEqual([
 			{ code: 'syntax', severity: 'error', message: 'Expected ; at the end of the statement; correct the statement before converting it.', line: 2, column: 21, endColumn: 21 },
