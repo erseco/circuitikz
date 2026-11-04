@@ -74,3 +74,7 @@ After core 1.3.1 (schemd/core#11): the lockfile moves to core 1.3.1, and the pee
 range stays `^1.2.0` (R-4.5.4). A `battery1` loop rendered with tectonic and the converted document
 rendered with core 1.3.1 now agree: the long plate sits at the start of the path, horizontally and
 vertically. No expected document changes, since core only draws the plates differently.
+
+After schemd/circuitikz#10: the peer and development range is `^1.3.1`, taken from `main`, so no
+supported core draws the battery plates the wrong way round. The lockfile was already on 1.3.1, so
+no expected document changes.

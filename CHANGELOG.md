@@ -26,12 +26,10 @@ Written for someone deciding whether to upgrade. Sections: `Fixed`, `Added`, `Re
 
 ### Changed (M2)
 
-- The `@schemd/core` peer range is now `^1.2.0`. A part with no label, and every junction, is emitted
-  without a label (`resistor:R1 at …`), so core draws its designator once instead of twice (R-4.5.4).
-- The lockfile moves to core 1.3.1, so tests and renders use a core that draws a battery's long plate
-  on its `positive` terminal (schemd/core#11). The peer and development range stays `^1.2.0`: under
-  1.2.x and 1.3.0 a converted battery keeps the right ports and netlist, but core draws its plates
-  the wrong way round.
+- A part with no label, and every junction, is emitted without a label (`resistor:R1 at …`), so core
+  draws its designator once instead of twice (R-4.5.4). That needs core 1.2.0, and the `^1.3.1` peer
+  range from `main` (schemd/circuitikz#10) also gives a core that draws a battery's long plate on
+  its `positive` terminal (schemd/core#11).
 - connectivityOf now includes isolated non-junction ports as singleton nets, correcting its former
   connection-only behavior without omitting any input terminal.
 - Conflicting kinds/labels are rejected; repeated invert is idempotent. Zero-length wire steps do not
