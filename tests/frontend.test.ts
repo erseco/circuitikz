@@ -156,6 +156,13 @@ describe('span-aware parser', () => {
 			keys: [{ name: 'thick' }], elements: [{ kind: 'move' }, { keys: [{ name: 'R' }] }, { keys: [] }] }] } });
 	});
 
+	it('skips a statement command inside braces while recovering', () => {
+		expect(read(wrap('\\draw (0,0) foo {\\draw (1,1)};\n\\draw (0,0) arc (1,1);')).diagnostics).toEqual([
+			{ code: 'unsupported', severity: 'error', message: 'foo is not supported; use the documented CircuiTikZ subset instead.', line: 2, column: 13, endColumn: 16 },
+			{ code: 'unsupported', severity: 'error', message: 'arc is not supported; use the documented CircuiTikZ subset instead.', line: 3, column: 13, endColumn: 16 }
+		]);
+	});
+
 	it('resynchronises at the next statement after a missing semicolon', () => {
 		expect(read(wrap('\\draw (0,0) -- (1,0)\n\\node {x};')).diagnostics).toEqual([
 			{ code: 'syntax', severity: 'error', message: 'Expected ; at the end of the statement; correct the statement before converting it.', line: 2, column: 21, endColumn: 21 },

@@ -82,6 +82,34 @@ const mutants = [
 		tests: ['tests/frontend.test.ts']
 	},
 	{
+		name: 'recovery stops before a draw or coordinate command',
+		file: 'src/parser.ts',
+		from: "if (depth === 0 && (this.at('\\\\draw') || this.at('\\\\coordinate'))) return;",
+		to: "if (depth === 0 && this.at('\\\\draw')) return;",
+		tests: ['tests/rejections.test.ts']
+	},
+	{
+		name: 'a statement command inside braces does not end recovery',
+		file: 'src/parser.ts',
+		from: "if (depth === 0 && (this.at('\\\\draw')",
+		to: "if ((this.at('\\\\draw')",
+		tests: ['tests/frontend.test.ts', 'tests/rejections.test.ts']
+	},
+	{
+		name: 'draw options are checked even when the statement fails',
+		file: 'src/parser.ts',
+		from: 'this.checkOptions(keys, false);',
+		to: '',
+		tests: ['tests/rejections.test.ts']
+	},
+	{
+		name: 'environment options are checked even when the document fails',
+		file: 'src/parser.ts',
+		from: 'this.checkOptions(keys, true);',
+		to: '',
+		tests: ['tests/rejections.test.ts']
+	},
+	{
 		name: 'recovery stops at the next statement command',
 		file: 'src/parser.ts',
 		from: 'if (this.synced) { this.synced = false; return; }',

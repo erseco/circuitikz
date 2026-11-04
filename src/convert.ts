@@ -29,12 +29,8 @@ export function convertCircuitikz(source: string, options?: ConvertCircuitikzOpt
 	} else {
 		const tokens = scan(source, diagnostics);
 		if (diagnostics.items.length === 0) {
-			const tree = parse(tokens, diagnostics);
-			if (tree !== undefined) {
-				keysOf(tree.keys, diagnostics, true);
-				for (const statement of tree.statements) if (statement.kind === 'draw') keysOf(statement.keys, diagnostics, false);
-				if (!diagnostics.items.some((item) => item.severity === 'error')) pending(diagnostics, tree.span);
-			}
+			const tree = parse(tokens, diagnostics, (keys, environment) => keysOf(keys, diagnostics, environment));
+			if (tree !== undefined && !diagnostics.items.some((item) => item.severity === 'error')) pending(diagnostics, tree.span);
 		}
 	}
 	return { ok: false, source: undefined, fence: undefined, sourceMap: [], diagnostics: diagnostics.sorted() };
