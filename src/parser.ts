@@ -11,7 +11,8 @@ class Parser {
 	/** Set when a statement ended at the next statement's command: recovery must not skip it. */
 	private synced = false;
 
-	constructor(private readonly tokens: readonly Token[], private readonly diagnostics: Diagnostics) {}
+	constructor(private readonly tokens: readonly Token[], private readonly diagnostics: Diagnostics,
+		private readonly checkOptions: OptionCheck) {}
 
 	private get token(): Token { return this.tokens[this.cursor]!; }
 	/** Callers check the EOF boundary before consuming a token. */
@@ -28,11 +29,13 @@ class Parser {
 	}
 	private boundary(): boolean { return this.token.kind === 'eof' || this.delimiter('\\end'); }
 
-	/** Skip exactly one broken statement, respecting braces and environment end. */
+	/** Skip exactly one broken statement, respecting braces and environment end.
+	 * A statement command at depth 0 starts the next statement, so it is never skipped (R-4.2.3). */
 	private recover(): void {
 		if (this.synced) { this.synced = false; return; }
 		let depth = 0;
 		while (!this.boundary()) {
+			if (depth === 0 && (this.at('\\draw') || this.at('\\coordinate'))) return;
 			const token = this.take();
 			if (token.value === '{') depth += 1;
 			else if (token.value === '}') depth = Math.max(0, depth - 1);
@@ -116,6 +119,7 @@ class Parser {
 		if (start.value !== '\\draw') { unsupported(this.diagnostics, start.value, start); return undefined; }
 		const keys = this.options();
 		if (keys === undefined) return undefined;
+		this.checkOptions(keys, false);
 		const first = this.point();
 		if (first === undefined) return undefined;
 		const elements: PathElement[] = [{ kind: 'move', at: first, span: first.span }];
@@ -165,6 +169,7 @@ class Parser {
 		this.cursor += 4;
 		const keys = this.options();
 		if (keys === undefined) return undefined;
+		this.checkOptions(keys, true);
 		const statements: Statement[] = [];
 		let count = 0;
 		while (!this.boundary()) {
@@ -181,7 +186,11 @@ class Parser {
 	}
 }
 
+/** Receives each environment or draw option list as soon as it is read, so a statement or document
+ * that fails later still has its options checked (R-3.4). */
+export type OptionCheck = (keys: readonly Key[], environment: boolean) => void;
+
 /** Parse one environment; all errors are values and recovery always advances. */
-export function parse(tokens: readonly Token[], diagnostics: Diagnostics): SyntaxTree | undefined {
-	return new Parser(tokens, diagnostics).parse();
+export function parse(tokens: readonly Token[], diagnostics: Diagnostics, checkOptions: OptionCheck = () => {}): SyntaxTree | undefined {
+	return new Parser(tokens, diagnostics, checkOptions).parse();
 }
