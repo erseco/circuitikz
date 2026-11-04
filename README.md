@@ -129,8 +129,8 @@ may produce warnings. The 37 rejection fixtures pin full messages and positions.
 ## Compatibility and verification
 
 TypeScript strict checking, ESM with `.js` relative imports, Node.js 24+, browsers and Web Workers.
-No runtime dependencies; `@schemd/core` is the sole peer, with the existing `^1.1.0` range.
-The lockfile currently tests core 1.1.0. No dependency or public type changes were introduced.
+No runtime dependencies; `@schemd/core` is the sole peer, with the `^1.3.1` range that `main` uses,
+and the lockfile tests core 1.3.1. No public type changes were introduced.
 
 ```sh
 bun ci
