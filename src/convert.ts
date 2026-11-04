@@ -32,11 +32,9 @@ export function convertCircuitikz(source: string, options?: ConvertCircuitikzOpt
 		else {
 			const tokens = scan(source, diagnostics);
 			if (diagnostics.items.length === 0) {
-				const tree = parse(tokens, diagnostics);
+				const tree = parse(tokens, diagnostics, (keys, environment) => keysOf(keys, diagnostics, environment));
 				if (tree !== undefined) {
 					beginning = tree.span;
-					keysOf(tree.keys, diagnostics, true);
-					for (const statement of tree.statements) if (statement.kind === 'draw') keysOf(statement.keys, diagnostics, false);
 					const resolved = resolveCoordinates(tree, diagnostics);
 					const segments: Segment[] = [];
 					const fixed = tree.keys.some((key) => key.name === 'fixbatteries' && key.value === undefined);
