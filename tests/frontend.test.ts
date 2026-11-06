@@ -166,6 +166,56 @@ describe('span-aware parser and resolver', () => {
 		] });
 	});
 
+	it('reports an unresolved point once, not again at each name built on it', () => {
+		const missing = { code: 'reference', severity: 'error', message: 'Coordinate missing is not defined; define it before using it.', line: 2, column: 20, endColumn: 29 };
+		expect(read(wrap('\\coordinate (A) at (missing);\n\\draw (A) -- +(1,0) coordinate (B);\n\\draw (B) -- (2,0);')).diagnostics).toEqual([missing]);
+		// A name defined from an unresolved point is still defined, so a second definition is reported.
+		expect(read(wrap('\\coordinate (A) at (missing);\n\\coordinate (A) at (0,0);')).diagnostics).toEqual([
+			missing,
+			{ code: 'reference', severity: 'error', message: 'Coordinate A is already defined; give the second definition a different name.', line: 3, column: 14, endColumn: 15 }
+		]);
+		const overflow = read(wrap('\\draw (90071992547409.91,0) -- ++(0.01,0) coordinate (O);\n\\draw (O) -- (0,0);'));
+		expect(overflow.diagnostics).toEqual([{ code: 'limit', severity: 'error', message: 'The coordinate exceeds the exact integer range; use smaller coordinates or relative offsets.', line: 2, column: 32, endColumn: 42 }]);
+	});
+
+	// Each expectation was read back from TikZ (tectonic, \pgfgetlastxy after each point).
+	it.each([
+		{ name: 'a relative \\coordinate starts from the origin', tex: '\\coordinate (P) at +(1,0);\n\\draw (P) -- (0,0);', from: { x: 100, y: 0 } },
+		{ name: 'a statement does not inherit the previous one', tex: '\\draw (3,3) -- (4,4);\n\\coordinate (P) at ++(1,2);\n\\draw (P) -- (0,0);', from: { x: 100, y: 200 } },
+		{ name: 'a path may start with a relative point', tex: '\\draw +(2,0) -- (5,5);', from: { x: 200, y: 0 } },
+		{ name: '++ after cycle starts from the subpath start', tex: '\\draw (0,0) -- (1,0) -- (1,1) -- cycle -- ++(0,2);', to: { x: 0, y: 200 } },
+		{ name: '+ after cycle keeps the subpath start as reference', tex: '\\draw (0,0) -- (1,0) -- (1,1) -- cycle -- +(0,2) -- +(1,0);', to: { x: 100, y: 0 } },
+		{ name: 'coordinate (name) does not move the reference', tex: '\\draw (2,2) coordinate (N) -- +(1,0) -- +(0,1);', to: { x: 200, y: 300 } },
+		{ name: 'a move resets the reference', tex: '\\draw (0,0) -- ++(1,0) (5,5) -- +(1,1);', to: { x: 600, y: 600 } },
+		{ name: 'runs of spaces and a line break in a name are one space', tex: '\\coordinate (start of chart) at (7,7);\n\\draw (start   of chart) -- (start\nof chart);', from: { x: 700, y: 700 }, to: { x: 700, y: 700 } }
+	])('resolves as TikZ does: $name', ({ tex, from, to }) => {
+		const result = read(wrap(tex));
+		expect(result.diagnostics).toEqual([]);
+		if (from !== undefined) expect(result.segments.at(-1)?.from).toEqual(from);
+		if (to !== undefined) expect(result.segments.at(-1)?.to).toEqual(to);
+	});
+
+	const notDefined = (name: string, line: number, column: number) => ({ code: 'reference', severity: 'error', message: `Coordinate ${name} is not defined; define it before using it.`, line, column, endColumn: column + name.length + 2 });
+	it.each([
+		{ name: 'a use before a later definition in the same path', tex: '\\draw (A) -- (0,0) coordinate (A) -- (1,0);', diagnostics: [notDefined('A', 2, 7)], segments: [[{ x: 0, y: 0 }, { x: 100, y: 0 }]] },
+		{ name: 'a use before a later \\coordinate', tex: '\\draw (B) -- (0,0);\n\\coordinate (B) at (1,1);\n\\draw (B) -- (0,0);', diagnostics: [notDefined('B', 2, 7)], segments: [[{ x: 100, y: 100 }, { x: 0, y: 0 }]] },
+		{ name: 'relative points after an unresolved start, until an absolute one', tex: '\\draw (missing) -- +(1,0) -- ++(1,0) -- (2,2) -- +(1,0);', diagnostics: [notDefined('missing', 2, 7)], segments: [[{ x: 200, y: 200 }, { x: 300, y: 200 }]] },
+		{ name: 'cycle back to an unresolved subpath start', tex: '\\draw (missing) -- (1,0) -- (1,1) -- cycle;', diagnostics: [notDefined('missing', 2, 7)], segments: [[{ x: 100, y: 0 }, { x: 100, y: 100 }]] },
+		{ name: 'cycle straight after the move-to', tex: '\\draw (1,1) -- cycle;', diagnostics: [], segments: [[{ x: 100, y: 100 }, { x: 100, y: 100 }]] },
+		{ name: 'a corner operation to a relative point', tex: '\\draw (1,0) |- ++(1,1) -| +(-1,1);', diagnostics: [], segments: [[{ x: 100, y: 0 }, { x: 200, y: 100 }], [{ x: 200, y: 100 }, { x: 100, y: 200 }]] },
+		{ name: 'a Unicode name, defined inline and reused', tex: '\\draw (1,2) coordinate (α😀) -- (0,0);\n\\draw (α😀) -- ++(1,0);', diagnostics: [], segments: [[{ x: 100, y: 200 }, { x: 0, y: 0 }], [{ x: 100, y: 200 }, { x: 200, y: 200 }]] }
+	])('resolution edge case: $name', ({ tex, diagnostics, segments }) => {
+		const result = read(wrap(tex));
+		expect(result.diagnostics).toEqual(diagnostics);
+		expect(result.segments.map(({ from, to }) => [from, to])).toEqual(segments);
+	});
+
+	it('keeps names case-sensitive', () => {
+		expect(read(wrap('\\coordinate (a) at (1,1);\n\\draw (A) -- (0,0);')).diagnostics).toEqual([
+			{ code: 'reference', severity: 'error', message: 'Coordinate A is not defined; define it before using it.', line: 3, column: 7, endColumn: 10 }
+		]);
+	});
+
 	it('does not let errors in one statement hide the next statement', () => {
 		const result = read(wrap('\\draw (0,0) to[R] (1,;\n\\node {a;b};\n\\draw (0,0) arc (1,1);\n\\coordinate (A) at (missing);'));
 		expect(result.diagnostics).toEqual([
