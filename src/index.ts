@@ -7,3 +7,4 @@ export type {
 	CircuitikzMapping,
 	ConvertCircuitikzOptions
 } from './types.js';
+export { convertCircuitikz } from './convert.js';

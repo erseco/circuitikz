@@ -1,0 +1,10 @@
+[
+  {
+    "code": "unsupported",
+    "message": "This coordinate form is not supported; use the documented CircuiTikZ subset instead.",
+    "line": 2,
+    "column": 7,
+    "endColumn": 13,
+    "severity": "error"
+  }
+]

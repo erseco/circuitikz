@@ -1,0 +1,10 @@
+[
+  {
+    "code": "syntax",
+    "message": "Expected a decimal coordinate with optional cm units; correct the statement before converting it.",
+    "line": 2,
+    "column": 7,
+    "endColumn": 14,
+    "severity": "error"
+  }
+]

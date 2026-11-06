@@ -33,6 +33,237 @@ const EXEMPT = new Set(['src/ast.ts', 'src/index.ts', 'src/types.ts']);
 
 const mutants = [
 	{
+		name: 'multiline spans stay on the first line',
+		file: 'src/lexer.ts',
+		from: 'first.line === last.line ? last.endColumn : first.endColumn',
+		to: 'last.endColumn',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'the source limit is inclusive',
+		file: 'src/convert.ts',
+		from: 'source.length > settings.maxSourceLength',
+		to: 'source.length >= settings.maxSourceLength',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'strict escalates presentation warnings',
+		file: 'src/diagnostics.ts',
+		from: 'warning && !this.strict ? \'warning\' : \'error\'',
+		to: 'warning ? \'warning\' : \'error\'',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'coordinate precision is never rounded',
+		file: 'src/coordinates.ts',
+		from: 'places === 2',
+		to: 'places === 3',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'coordinate digits are accumulated in base ten',
+		file: 'src/coordinates.ts',
+		from: 'value = value * 10 + digit;',
+		to: 'value = value * 9 + digit;',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'negative zero is normalized',
+		file: 'src/coordinates.ts',
+		from: 'negative && magnitude !== 0',
+		to: 'negative',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'fractional coordinate overflow is rejected',
+		file: 'src/coordinates.ts',
+		from: 'value > Math.floor((Number.MAX_SAFE_INTEGER - fraction * (places === 1 ? 10 : 1)) / SCALE)',
+		to: 'false',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'every reader stops before a draw or coordinate command',
+		file: 'src/parser.ts',
+		from: "return this.at('\\\\draw') || this.at('\\\\coordinate');",
+		to: "return this.at('\\\\draw');",
+		tests: ['tests/rejections.test.ts']
+	},
+	{
+		name: 'a statement command inside braces does not end recovery',
+		file: 'src/parser.ts',
+		from: 'if (depth === 0 && this.statementStart()) return;',
+		to: 'if (this.statementStart()) return;',
+		tests: ['tests/frontend.test.ts', 'tests/rejections.test.ts']
+	},
+	{
+		name: 'recovery stops before the next statement command',
+		file: 'src/parser.ts',
+		from: 'if (depth === 0 && this.statementStart()) return;',
+		to: '',
+		tests: ['tests/rejections.test.ts']
+	},
+	{
+		name: 'a coordinate stops before the next statement command',
+		file: 'src/parser.ts',
+		from: "!this.at(';') && !this.at('(') && !this.statementStart())",
+		to: "!this.at(';') && !this.at('('))",
+		tests: ['tests/rejections.test.ts']
+	},
+	{
+		name: 'a name stops before the next statement command',
+		file: 'src/parser.ts',
+		from: "!this.at('(') && !this.at(';') && !this.statementStart())",
+		to: "!this.at('(') && !this.at(';'))",
+		tests: ['tests/rejections.test.ts']
+	},
+	{
+		name: 'an option list stops before the next statement command',
+		file: 'src/parser.ts',
+		from: "depth === 0 && (token.value === ';' || this.statementStart())",
+		to: "depth === 0 && token.value === ';'",
+		tests: ['tests/rejections.test.ts']
+	},
+	{
+		name: 'a statement command inside option braces is option text',
+		file: 'src/parser.ts',
+		from: "depth === 0 && (token.value === ';' || this.statementStart())",
+		to: "(token.value === ';' && depth === 0 || this.statementStart())",
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'draw options are checked even when the statement fails',
+		file: 'src/parser.ts',
+		from: 'this.checkOptions(keys, false);',
+		to: '',
+		tests: ['tests/rejections.test.ts']
+	},
+	{
+		name: 'environment options are checked even when the document fails',
+		file: 'src/parser.ts',
+		from: 'this.checkOptions(keys, true);',
+		to: '',
+		tests: ['tests/rejections.test.ts']
+	},
+	{
+		name: 'recovery stops at the next statement command',
+		file: 'src/parser.ts',
+		from: 'if (this.synced) { this.synced = false; return; }',
+		to: 'this.synced = false;',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'empty option entries are ignored',
+		file: 'src/parser.ts',
+		from: 'if (parts.length === 0) { this.take(); if (token.value === \']\') return keys; continue; }',
+		to: 'if (parts.length === 0) { syntax(this.diagnostics, \'a non-empty option\', token); return undefined; }',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'unknown host options throw',
+		file: 'src/options.ts',
+		from: 'Reflect.ownKeys(options)',
+		to: 'Object.keys(options)',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'strict option types are checked',
+		file: 'src/options.ts',
+		from: 'typeof value !== \'boolean\'',
+		to: 'false',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'title budget is inclusive',
+		file: 'src/options.ts',
+		from: 'value.length > 120',
+		to: 'value.length >= 120',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'recovery ignores semicolons in braces',
+		file: 'src/parser.ts',
+		from: 'else if (token.value === \';\' && depth === 0) return;',
+		to: 'else if (token.value === \';\') return;',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'recovery stops at the environment end',
+		file: 'src/parser.ts',
+		from: 'private boundary(): boolean { return this.token.kind === \'eof\' || this.delimiter(\'\\\\end\'); }',
+		to: 'private boundary(): boolean { return this.token.kind === \'eof\'; }',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'statement budget is inclusive',
+		file: 'src/parser.ts',
+		from: 'count === LIMITS.statements',
+		to: 'count > LIMITS.statements',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'path budget is inclusive',
+		file: 'src/parser.ts',
+		from: 'elements.length === LIMITS.pathElements',
+		to: 'elements.length > LIMITS.pathElements',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'component budget is inclusive',
+		file: 'src/parser.ts',
+		from: 'this.components === LIMITS.components',
+		to: 'this.components > LIMITS.components',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'short is a wire rather than a component',
+		file: 'src/parser.ts',
+		from: 'if (!parsed.some((key) => key.name === \'short\'))',
+		to: 'if (true)',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'component option order and word boundaries survive',
+		file: 'src/lexer.ts',
+		from: 'if (end >= 0 && token.start > end) parts.push(\' \');',
+		to: '',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'independent errors are retained',
+		file: 'src/parser.ts',
+		from: 'if (statement === undefined) this.recover();',
+		to: 'if (statement === undefined) { this.recover(); return undefined; }',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'M1 never returns unsupported input as a success',
+		file: 'src/convert.ts',
+		from: 'ok: false, source: undefined',
+		to: 'ok: true, source: undefined',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'missing semicolons are not accepted at environment end',
+		file: 'src/parser.ts',
+		from: 'if (this.accept(\';\')) return true;',
+		to: 'if (this.accept(\';\') || this.boundary()) return true;',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'the default source ceiling is stable',
+		file: 'src/limits.ts',
+		from: 'sourceLength: 100_000',
+		to: 'sourceLength: 100_001',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'one TikZ unit is exactly one hundred integer units',
+		file: 'src/limits.ts',
+		from: 'export const SCALE = 100;',
+		to: 'export const SCALE = 99;',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
 		name: 'comments end at CR as well as LF',
 		file: 'src/lexer.ts',
 		from: "while (cursor < source.length && source[cursor] !== '\\r' && source[cursor] !== '\\n')",

@@ -1,0 +1,10 @@
+[
+  {
+    "code": "limit",
+    "message": "The path elements per statement limit is 4096; split the path into several \\draw statements.",
+    "line": 2,
+    "column": 36868,
+    "endColumn": 36870,
+    "severity": "error"
+  }
+]

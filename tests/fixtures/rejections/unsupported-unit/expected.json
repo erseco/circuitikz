@@ -1,0 +1,10 @@
+[
+  {
+    "code": "unsupported",
+    "message": "Coordinate value 1mm is not supported; use the documented CircuiTikZ subset instead.",
+    "line": 2,
+    "column": 8,
+    "endColumn": 11,
+    "severity": "error"
+  }
+]
