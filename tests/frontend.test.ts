@@ -156,6 +156,16 @@ describe('span-aware parser and resolver', () => {
 		]);
 	});
 
+	it('keeps a move in the middle of a path as a move, and cycle as a destination', () => {
+		const result = read(wrap('\\draw (0,0) -- (1,0) (2,0) -- +(0,1) -- cycle;'));
+		expect(result.diagnostics).toEqual([]);
+		expect(result.tree?.statements[0]).toMatchObject({ elements: [
+			{ kind: 'move', at: { x: 0, y: 0 } }, { kind: 'segment', operation: '--' },
+			{ kind: 'move', at: { x: 200, y: 0, mode: 'absolute' } }, { kind: 'segment', at: { x: 0, y: 100, mode: '+' } },
+			{ kind: 'segment', operation: '--', at: { kind: 'cycle' } }
+		] });
+	});
+
 	it('does not let errors in one statement hide the next statement', () => {
 		const result = read(wrap('\\draw (0,0) to[R] (1,;\n\\node {a;b};\n\\draw (0,0) arc (1,1);\n\\coordinate (A) at (missing);'));
 		expect(result.diagnostics).toEqual([
