@@ -425,9 +425,23 @@ const mutants = [
 		tests: ['tests/frontend.test.ts']
 	},
 	{
+		name: 'a coordinate built on a failed point is still defined',
+		file: 'src/coordinates.ts',
+		from: 'define(statement.name, resolve(statement.at, base, first), statement.span);',
+		to: 'const point = resolve(statement.at, base, first); if (point !== undefined) define(statement.name, point, statement.span);',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'an inline name on a failed point is still defined',
+		file: 'src/coordinates.ts',
+		from: 'define(element.name, current, element.span);',
+		to: 'if (current !== undefined) define(element.name, current, element.span);',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
 		name: 'undefined names keep their precise diagnostic',
 		file: 'src/coordinates.ts',
-		from: 'if (point === undefined) reference',
+		from: 'if (!names.has(at.name)) reference',
 		to: 'if (false) reference',
 		tests: ['tests/frontend.test.ts']
 	},
