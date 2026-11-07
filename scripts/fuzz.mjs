@@ -51,9 +51,12 @@ function random(seed) {
 
 async function* generated(seed, cases) {
 	const next = random(seed);
+	// Mutate every fixture input: valid circuits and the documented rejections alike.
 	const corpus = [];
-	const root = new URL('../tests/fixtures/conformance/', import.meta.url);
-	for (const name of (await readdir(root)).sort()) corpus.push(await readFile(new URL(`${name}/input.tex`, root), 'utf8'));
+	for (const kind of ['conformance', 'rejections']) {
+		const root = new URL(`../tests/fixtures/${kind}/`, import.meta.url);
+		for (const name of (await readdir(root)).sort()) corpus.push(await readFile(new URL(`${name}/input.tex`, root), 'utf8'));
+	}
 	const chars = [...'\\{}[]()%,;=+-|$^0123456789abcXYZ \r\n\t', '😀', 'α', '\u0000'];
 	const tokens = ['\\begin{circuitikz}', '\\end{circuitikz}', '\\draw', '\\coordinate', '\\node', '(', ')', '[', ']', '{', '}', ';', ',', 'to', '++', '+', '--', '|-', '-|', 'cycle', 'R', '0', '1.00', '(A)', '%comment\r\n'];
 	const wrap = (text) => `\\begin{circuitikz}\n${text}\n\\end{circuitikz}`;
