@@ -1,9 +1,9 @@
-source:B1 "B1" at (80, 230) #blue [type=battery orientation=down]
+source:B1 at (80, 230) #blue [type=battery orientation=down]
 resistor:R1 "R_1" at (230, 80) #amber
 resistor:R2 "R_2" at (380, 230) #amber [orientation=down]
 capacitor:C1 "C_1" at (580, 230) #cyan [orientation=down]
-junction:J1 "J1" at (380, 80) #slate
-junction:J2 "J2" at (380, 380) #slate
+junction:J1 at (380, 80) #slate
+junction:J2 at (380, 380) #slate
 
 B1.negative -> R1.in #blue [ortho]
 R1.out -> J1.node #amber [ortho]

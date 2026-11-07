@@ -1,0 +1,13 @@
+{
+  "origin": "REQUIREMENTS.md M2; CircuiTikZ tex/pgfcircbipoles.tex",
+  "note": "american inductor maps to inductor; open terminals remain singleton nets; no added units.",
+  "fence": "schemd bounds=\"360x160\" title=\"Converted CircuiTikZ circuit\"",
+  "connectivity": [
+    [
+      "L1.in"
+    ],
+    [
+      "L1.out"
+    ]
+  ]
+}
