@@ -26,5 +26,10 @@ Written for someone deciding whether to upgrade. Sections: `Fixed`, `Added`, `Re
 ### Verified
 
 - 100% coverage on all four axes, every mutant killed, a source-policy test, a packaging test,
-  33 rejection fixtures that pin each diagnostic's full message and position, and the 5 KiB M1 size
+  45 rejection fixtures that pin each diagnostic's full message and position, and the 5 KiB M1 size
   budget.
+- A fuzz contract (`bun run test:fuzz:contract`, run in CI and by `release:check`): 20,000 seeded
+  inputs per run, each converted twice in an isolated worker with a 2-second deadline. Every result
+  must have the declared shape, keep its diagnostics in order and inside the input, repeat exactly,
+  and contain no `internal` diagnostic. A failure is minimized and saved as `fuzz-failure-<seed>.json`,
+  which CI keeps as an artifact.
