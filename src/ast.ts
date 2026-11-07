@@ -1,4 +1,4 @@
-/** Internal syntax and resolved geometry, independent of Schemd text. */
+/** Internal syntax and resolved geometry, independent of Schemd text. All offsets count UTF-16 units. */
 export interface Span {
 	readonly start: number;
 	readonly end: number;
