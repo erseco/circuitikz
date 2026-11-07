@@ -26,12 +26,10 @@ Written for someone deciding whether to upgrade. Sections: `Fixed`, `Added`, `Re
 
 ### Changed (M2)
 
-- The `@schemd/core` peer range is now `^1.2.0`. A part with no label, and every junction, is emitted
-  without a label (`resistor:R1 at …`), so core draws its designator once instead of twice (R-4.5.4).
-- The lockfile moves to core 1.3.1, so tests and renders use a core that draws a battery's long plate
-  on its `positive` terminal (schemd/core#11). The peer and development range stays `^1.2.0`: under
-  1.2.x and 1.3.0 a converted battery keeps the right ports and netlist, but core draws its plates
-  the wrong way round.
+- A part with no label, and every junction, is emitted without a label (`resistor:R1 at …`), so core
+  draws its designator once instead of twice (R-4.5.4). That needs core 1.2.0, and the `^1.3.1` peer
+  range from `main` (schemd/circuitikz#10) also gives a core that draws a battery's long plate on
+  its `positive` terminal (schemd/core#11).
 - connectivityOf now includes isolated non-junction ports as singleton nets, correcting its former
   connection-only behavior without omitting any input terminal.
 - Conflicting kinds/labels are rejected; repeated invert is idempotent. Zero-length wire steps do not
@@ -80,6 +78,13 @@ Written for someone deciding whether to upgrade. Sections: `Fixed`, `Added`, `Re
 ### Added (M0 scaffold)
 
 - The contract, `REQUIREMENTS.md`, and the public types in `src/types.ts`.
+- `convertCircuitikz(tex, options?)` parses one `circuitikz` environment and reports every problem
+  it finds, with its line and column: unsupported statements, keys and coordinate forms, syntax
+  errors, excess decimal precision and resource limits. After a malformed statement it carries on at
+  the next `;`. It resolves named coordinates, `+`/`++` and `cycle` as TikZ does, and reports an
+  undefined or duplicate name, `cycle` after a `to[...]`, and a relative point that overflows. A name
+  built on a point that already failed doesn't repeat that error where it is used. It doesn't convert yet: input with no problem gets one `unsupported` error saying so.
+  Options are `title`, `strict` (presentation warnings become errors) and `maxSourceLength`.
 - The topology oracle: `connectivityOf`, `connectivityDifference` and `canonical` compare a schemd
   netlist with the connectivity a CircuiTikZ circuit describes, with junctions left out.
 - The conformance corpus. It has two cases: the series circuit from
@@ -89,5 +94,6 @@ Written for someone deciding whether to upgrade. Sections: `Fixed`, `Added`, `Re
 
 ### Verified (M0 baseline)
 
-- 100% coverage on all four axes, 10 of 10 mutants killed, a source-policy test, a packaging test,
-  and a 1 KiB size budget.
+- 100% coverage on all four axes, every mutant killed, a source-policy test, a packaging test,
+  33 rejection fixtures that pin each diagnostic's full message and position, and the 5 KiB M1 size
+  budget.

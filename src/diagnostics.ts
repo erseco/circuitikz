@@ -5,7 +5,7 @@ import type { CircuitikzDiagnostic, CircuitikzDiagnosticCode } from './types.js'
 export class Diagnostics {
 	readonly items: CircuitikzDiagnostic[] = [];
 
-	constructor(readonly strict: boolean) {}
+	constructor(readonly strict = false) {}
 
 	add(code: CircuitikzDiagnosticCode, message: string, span: Span, warning = false): void {
 		this.items.push({ code, message, line: span.line, column: span.column, endColumn: span.endColumn,
@@ -17,8 +17,9 @@ export class Diagnostics {
 	}
 }
 
-export function limit(d: Diagnostics, resource: string, maximum: number, span: Span): void {
-	d.add('limit', `The ${resource} limit is ${maximum}; split the circuit into smaller environments.`, span);
+/** `advice` says what to write instead, since splitting helps one ceiling and not another. */
+export function limit(d: Diagnostics, resource: string, maximum: number, advice: string, span: Span): void {
+	d.add('limit', `The ${resource} limit is ${maximum}; ${advice}.`, span);
 }
 
 export function syntax(d: Diagnostics, expected: string, span: Span): void {

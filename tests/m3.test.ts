@@ -59,13 +59,15 @@ it('counts ground declarations against the shared component ceiling before graph
 	expect(convertCircuitikz(wrap(body(LIMITS.components))).ok).toBe(true);
 	const result = convertCircuitikz(wrap(body(LIMITS.components + 1)));
 	expect(result.ok).toBe(false);
-	expect(result.diagnostics.some((d) => d.code === 'limit' && d.message === 'The components limit is 512; split the circuit into smaller environments.')).toBe(true);
+	expect(result.diagnostics.some((d) => d.code === 'limit' && d.message === 'The components limit is 512; split the circuit across several documents.')).toBe(true);
 });
 
 it.each(['node', 'node[ground]', 'node[ground]{text}', 'node[ground]{{}}', 'node[]{}', 'node[sground]{}', 'node[ground,ground]{}', 'node[ground,invert]{}', 'node[ground=1]{}', 'node[ground', 'node[ground];'])('rejects unsupported ground form %s without partial output', (node) => {
-	const result = convertCircuitikz(wrap(`\\draw (0,0) ${node};\\draw (unknown);`));
+	const result = convertCircuitikz(wrap(`\\draw (0,0) ${node};\\node {x};\\draw (unknown);`));
 	expect(result.ok).toBe(false); expect(result.sourceMap).toEqual([]);
 	expect(result.diagnostics.some((d) => d.code === 'internal')).toBe(false);
+	// Neither the statement after the broken one nor the one after that is swallowed.
+	expect(result.diagnostics.some((d) => d.message.startsWith('\\node is not supported'))).toBe(true);
 	expect(result.diagnostics.some((d) => d.code === 'reference')).toBe(true);
 });
 

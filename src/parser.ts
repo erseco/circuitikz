@@ -11,7 +11,8 @@ class Parser {
 	/** Set when a statement ended at the next statement's command: recovery must not skip it. */
 	private synced = false;
 
-	constructor(private readonly tokens: readonly Token[], private readonly diagnostics: Diagnostics) {}
+	constructor(private readonly tokens: readonly Token[], private readonly diagnostics: Diagnostics,
+		private readonly checkOptions: OptionCheck) {}
 
 	private get token(): Token { return this.tokens[this.cursor]!; }
 	/** Callers check the EOF boundary before consuming a token. */
@@ -27,8 +28,12 @@ class Parser {
 			&& this.tokens[this.cursor + 2]?.value === 'circuitikz' && this.tokens[this.cursor + 3]?.value === '}';
 	}
 	private boundary(): boolean { return this.token.kind === 'eof' || this.delimiter('\\end'); }
+	/** The next statement's command. A reader stops before it, so a missing delimiter never swallows
+	 * the statement after it (R-4.2.3). */
+	private statementStart(): boolean { return this.at('\\draw') || this.at('\\coordinate'); }
 
-	/** Skip exactly one broken statement, respecting braces and environment end. */
+	/** Skip exactly one broken statement, respecting braces and environment end.
+	 * A statement command at depth 0 starts the next statement, so it is never skipped (R-4.2.3). */
 	private recover(start: number): void {
 		if (this.synced) { this.synced = false; return; }
 		let depth = 0;
@@ -38,6 +43,7 @@ class Parser {
 		}
 		if (this.tokens[this.cursor - 1]!.value === ';' && depth === 0) return;
 		while (!this.boundary()) {
+			if (depth === 0 && this.statementStart()) return;
 			const token = this.take();
 			if (token.value === '{') depth += 1;
 			else if (token.value === '}') depth = Math.max(0, depth - 1);
@@ -71,7 +77,7 @@ class Parser {
 				if (depth === 0) { syntax(this.diagnostics, 'a matching { before }', token); return undefined; }
 				depth -= 1;
 			} else if (token.value === '$') math = !math;
-			else if (token.value === '[' || token.value === ';' && depth === 0) break;
+			else if (token.value === '[' || depth === 0 && (token.value === ';' || this.statementStart())) break;
 			parts.push(this.take());
 		}
 		syntax(this.diagnostics, 'a closing ] with balanced braces and math delimiters', this.token); return undefined;
@@ -84,7 +90,7 @@ class Parser {
 		if (this.at('+') || this.at('++')) mode = this.take().value as '+' | '++';
 		if (!this.expect('(')) return undefined;
 		const parts: Token[] = [];
-		while (!this.boundary() && !this.at(')') && !this.at(';') && !this.at('(')) parts.push(this.take());
+		while (!this.boundary() && !this.at(')') && !this.at(';') && !this.at('(') && !this.statementStart()) parts.push(this.take());
 		const last = this.token;
 		if (!this.expect(')')) return undefined;
 		return coordinate(parts, mode, through(start, last), this.diagnostics);
@@ -93,7 +99,7 @@ class Parser {
 	private name(): { readonly name: string; readonly span: Span } | undefined {
 		if (!this.expect('(')) return undefined;
 		const parts: Token[] = [];
-		while (!this.boundary() && !this.at(')') && !this.at('(') && !this.at(';')) parts.push(this.take());
+		while (!this.boundary() && !this.at(')') && !this.at('(') && !this.at(';') && !this.statementStart()) parts.push(this.take());
 		if (parts.length === 0) { syntax(this.diagnostics, 'a literal coordinate name', this.token); return undefined; }
 		const span = through(parts[0]!, parts.at(-1)!);
 		const name = textOf(parts);
@@ -110,7 +116,7 @@ class Parser {
 	}
 
 	private component(span: Span): boolean {
-		if (this.components === LIMITS.components) { limit(this.diagnostics, 'components', LIMITS.components, span); return false; }
+		if (this.components === LIMITS.components) { limit(this.diagnostics, 'components', LIMITS.components, 'split the circuit across several documents', span); return false; }
 		this.components += 1; return true;
 	}
 
@@ -126,12 +132,13 @@ class Parser {
 		if (start.value !== '\\draw') { unsupported(this.diagnostics, start.value, start); return undefined; }
 		const keys = this.options();
 		if (keys === undefined) return undefined;
+		this.checkOptions(keys, false);
 		const first = this.point();
 		if (first === undefined) return undefined;
 		const elements: PathElement[] = [{ kind: 'move', at: first, span: first.span }];
 		while (!this.boundary() && !this.at(';')) {
 			const operation = this.token;
-			if (elements.length === LIMITS.pathElements) { limit(this.diagnostics, 'path elements per statement', LIMITS.pathElements, operation); return undefined; }
+			if (elements.length === LIMITS.pathElements) { limit(this.diagnostics, 'path elements per statement', LIMITS.pathElements, 'split the path into several \\draw statements', operation); return undefined; }
 			if (this.accept('node')) {
 				if (!this.at('[')) { unsupported(this.diagnostics, 'node without [ground]{}', operation); return undefined; }
 				const nodeKeys = this.options();
@@ -181,24 +188,30 @@ class Parser {
 		this.cursor += 4;
 		const keys = this.options();
 		if (keys === undefined) return undefined;
+		this.checkOptions(keys, true);
 		const statements: Statement[] = [];
 		let count = 0;
 		while (!this.boundary()) {
-			if (count === LIMITS.statements) { limit(this.diagnostics, 'statements', LIMITS.statements, this.token); return undefined; }
+			if (count === LIMITS.statements) { limit(this.diagnostics, 'statements', LIMITS.statements, 'split the circuit across several documents', this.token); return undefined; }
 			count += 1;
 			const start = this.cursor;
 			const statement = this.statement();
 			if (statement === undefined) this.recover(start);
 			else statements.push(statement);
 		}
-		if (!this.delimiter('\\end')) { syntax(this.diagnostics, '\\end{circuitikz}', this.token); return undefined; }
+		// Every statement read so far is complete, so later phases still report on it (R-3.4).
+		if (!this.delimiter('\\end')) { syntax(this.diagnostics, '\\end{circuitikz}', this.token); return { span, keys, statements }; }
 		this.cursor += 4;
 		if (this.token.kind !== 'eof') environment(this.diagnostics, this.token);
 		return { span, keys, statements };
 	}
 }
 
+/** Receives each environment or draw option list as soon as it is read, so a statement or document
+ * that fails later still has its options checked (R-3.4). */
+export type OptionCheck = (keys: readonly Key[], environment: boolean) => void;
+
 /** Parse one environment; all errors are values and recovery always advances. */
-export function parse(tokens: readonly Token[], diagnostics: Diagnostics): SyntaxTree | undefined {
-	return new Parser(tokens, diagnostics).parse();
+export function parse(tokens: readonly Token[], diagnostics: Diagnostics, checkOptions: OptionCheck = () => {}): SyntaxTree | undefined {
+	return new Parser(tokens, diagnostics, checkOptions).parse();
 }

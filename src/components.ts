@@ -28,9 +28,13 @@ const DEFINITIONS: readonly (readonly [readonly string[], Definition])[] = [
 	[['short'], { kind: 'wire', prefix: '', color: '', first: '', last: '', canonical: '', variant: '' }]
 ];
 
+/** CircuiTikZ's pole styles: an optional circle, dot, diamond or rectjoinfill at each end. */
+const ENDS = ['', '*', 'o', 'd', '.'];
+const POLES = ENDS.flatMap((start) => ENDS.map((end) => `${start}-${end}`)).filter((pole) => pole !== '-');
+
 /** Only explicitly enumerated presentation keys are ignored. */
 export function presentationKey(key: Key, diagnostics: Diagnostics): boolean {
-	if (['mirror', 'thick', 'thin', 'dashed', '-*', '*-', '*-*', '-o', 'o-', 'o-o', '*-o', 'o-*', 'd-o', 'o-d', 'd-', '-d', 'd-*', '*-d', 'd-d', '.-', '.-*', '.-o', '.-d', '-.', 'o-.', '*-.', 'd-.', '.-.'].includes(key.name) && key.value === undefined
+	if ((['mirror', 'thick', 'thin', 'dashed'].includes(key.name) || POLES.includes(key.name)) && key.value === undefined
 		|| ['color', 'line width'].includes(key.name) && key.value !== undefined) {
 		presentation(diagnostics, key.name, key.span); return true;
 	}
