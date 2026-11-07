@@ -36,15 +36,13 @@ export function convertCircuitikz(source: string, options?: ConvertCircuitikzOpt
 	const origin = { start: 0, end: 0, line: 1, column: 1, endColumn: 1 };
 	let beginning = origin;
 	try {
-		if (source.length > settings.maxSourceLength) limit(diagnostics, 'source length', settings.maxSourceLength, origin);
+		if (source.length > settings.maxSourceLength) limit(diagnostics, 'source length', settings.maxSourceLength, 'convert a shorter document', origin);
 		else {
 			const tokens = scan(source, diagnostics);
 			if (diagnostics.items.length === 0) {
-				const tree = parse(tokens, diagnostics);
+				const tree = parse(tokens, diagnostics, (keys, environment) => keysOf(keys, diagnostics, environment));
 				if (tree !== undefined) {
 					beginning = tree.span;
-					keysOf(tree.keys, diagnostics, true);
-					for (const statement of tree.statements) if (statement.kind === 'draw') keysOf(statement.keys, diagnostics, false);
 					const resolved = resolveCoordinates(tree, diagnostics);
 					const segments: Segment[] = [];
 					/* As in CircuiTikZ, the last `voltage dir` wins. */

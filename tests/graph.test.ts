@@ -19,7 +19,7 @@ it('checks the junction budget at the ceiling and before adding one more', () =>
 			expect(circuit?.expected).toEqual([]);
 		} else {
 			expect(circuit).toBeUndefined();
-			expect(d.items).toEqual([{ code: 'limit', severity: 'error', message: 'The junctions limit is 512; split the circuit into smaller environments.', line: 1, column: 1, endColumn: 2 }]);
+			expect(d.items).toEqual([{ code: 'limit', severity: 'error', message: 'The junctions limit is 512; split the circuit across several documents.', line: 1, column: 1, endColumn: 2 }]);
 		}
 	}
 });

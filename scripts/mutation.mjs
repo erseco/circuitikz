@@ -16,12 +16,15 @@
  *
  * A mutant no input can tell apart from the original is equivalent: remove it
  * and say why in the pull request.
+ *
+ * The suites must pass before any mutant is applied. `mutation-run.mjs` gives
+ * each run its verdict (R-8.2.1); `tests/mutation-run.test.ts` checks them.
  */
 import { cp, mkdtemp, readdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
+import { runSuites } from './mutation-run.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -36,6 +39,104 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const EXEMPT = new Set(['src/index.ts', 'src/types.ts', 'src/ast.ts', 'src/circuit.ts']);
 
 const mutants = [
+	{
+		name: 'a line end taken by a comment is not a space',
+		file: 'src/lexer.ts',
+		from: 'if (!comment) space = true;',
+		to: 'space = true;',
+		tests: ['tests/lexer.test.ts', 'tests/frontend.test.ts']
+	},
+	{
+		name: 'leading blanks after a line end are not a space',
+		file: 'src/lexer.ts',
+		from: 'if (!lineStart) space = true;',
+		to: 'space = true;',
+		tests: ['tests/lexer.test.ts', 'tests/frontend.test.ts']
+	},
+	{
+		name: 'blanks before a comment are a space',
+		file: 'src/lexer.ts',
+		from: 'if (!lineStart) space = true;',
+		to: '',
+		tests: ['tests/lexer.test.ts', 'tests/frontend.test.ts']
+	},
+	{
+		name: 'a line end after a comment line still counts on the next line',
+		file: 'src/lexer.ts',
+		from: "comment = false;\n\t\t\tlineStart = true;",
+		to: "lineStart = true;",
+		tests: ['tests/lexer.test.ts']
+	},
+	{
+		name: 'a joined gap is no word boundary',
+		file: 'src/lexer.ts',
+		from: 'token.start > end && token.joined !== true',
+		to: 'token.start > end',
+		tests: ['tests/frontend.test.ts', 'tests/rejections.test.ts']
+	},
+	{
+		name: 'completed statements survive a missing environment end',
+		file: 'src/parser.ts',
+		from: "this.token); return { span, keys, statements }; }",
+		to: "this.token); return undefined; }",
+		tests: ['tests/rejections.test.ts']
+	},
+	{
+		name: 'comments end at CR as well as LF',
+		file: 'src/lexer.ts',
+		from: "while (cursor < source.length && source[cursor] !== '\\r' && source[cursor] !== '\\n')",
+		to: "while (cursor < source.length && source[cursor] !== '\\n')",
+		tests: ['tests/lexer.test.ts']
+	},
+	{
+		name: 'columns count UTF-16 units',
+		file: 'src/lexer.ts',
+		from: 'column += cursor - start;',
+		to: 'column += [...source.slice(start, cursor)].length;',
+		tests: ['tests/lexer.test.ts']
+	},
+	{
+		name: 'CRLF is one newline',
+		file: 'src/lexer.ts',
+		from: "c === '\\r' && source[cursor + 1] === '\\n' ? 2 : 1",
+		to: '1',
+		tests: ['tests/lexer.test.ts']
+	},
+	{
+		name: 'escaped percent does not begin a comment',
+		file: 'src/lexer.ts',
+		from: "kind = 'command';",
+		to: "if (source[cursor] === '%') { cursor = source.length; } kind = 'command';",
+		tests: ['tests/lexer.test.ts']
+	},
+	{
+		name: 'a control symbol takes a whole code point',
+		file: 'src/lexer.ts',
+		from: 'cursor += source.codePointAt(cursor)! > 0xffff ? 2 : 1;',
+		to: 'cursor += 1;',
+		tests: ['tests/lexer.test.ts']
+	},
+	{
+		name: 'the scan stops at the brace ceiling',
+		file: 'src/lexer.ts',
+		from: "LIMITS.braceDepth, 'use fewer nested braces', token); break; }",
+		to: "LIMITS.braceDepth, 'use fewer nested braces', token); }",
+		tests: ['tests/lexer.test.ts']
+	},
+	{
+		name: 'the brace nesting ceiling is 32',
+		file: 'src/limits.ts',
+		from: 'braceDepth: 32',
+		to: 'braceDepth: 33',
+		tests: ['tests/lexer.test.ts']
+	},
+	{
+		name: 'diagnostics sort by line then column',
+		file: 'src/diagnostics.ts',
+		from: 'a.line - b.line || a.column - b.column',
+		to: 'b.line - a.line || a.column - b.column',
+		tests: ['tests/lexer.test.ts']
+	},
 	{
 		name: 'a junction is recognised by its kind',
 		file: 'src/topology.ts',
@@ -107,41 +208,6 @@ const mutants = [
 		tests: ['tests/topology.test.ts']
 	},
 	{
-		name: 'comments end at CR as well as LF',
-		file: 'src/lexer.ts',
-		from: 'while (cursor < source.length && source[cursor] !== \'\\r\' && source[cursor] !== \'\\n\')',
-		to: 'while (cursor < source.length && source[cursor] !== \'\\n\')',
-		tests: ['tests/frontend.test.ts']
-	},
-	{
-		name: 'columns count UTF-16 units',
-		file: 'src/lexer.ts',
-		from: 'column += cursor - start;',
-		to: 'column += [...source.slice(start, cursor)].length;',
-		tests: ['tests/frontend.test.ts']
-	},
-	{
-		name: 'CRLF is one newline',
-		file: 'src/lexer.ts',
-		from: 'c === \'\\r\' && source[cursor + 1] === \'\\n\' ? 2 : 1',
-		to: '1',
-		tests: ['tests/frontend.test.ts']
-	},
-	{
-		name: 'escaped percent does not begin a comment',
-		file: 'src/lexer.ts',
-		from: 'kind = \'command\';',
-		to: 'if (source[cursor] === \'%\') { cursor = source.length; } kind = \'command\';',
-		tests: ['tests/frontend.test.ts']
-	},
-	{
-		name: 'brace budget is checked before further scanning',
-		file: 'src/lexer.ts',
-		from: 'depth === LIMITS.braceDepth',
-		to: 'depth > LIMITS.braceDepth',
-		tests: ['tests/frontend.test.ts']
-	},
-	{
 		name: 'multiline spans stay on the first line',
 		file: 'src/lexer.ts',
 		from: 'first.line === last.line ? last.endColumn : first.endColumn',
@@ -195,13 +261,6 @@ const mutants = [
 		file: 'src/diagnostics.ts',
 		from: 'warning && !this.strict ? \'warning\' : \'error\'',
 		to: 'warning ? \'warning\' : \'error\'',
-		tests: ['tests/frontend.test.ts']
-	},
-	{
-		name: 'diagnostics sort by line then column',
-		file: 'src/diagnostics.ts',
-		from: 'a.line - b.line || a.column - b.column',
-		to: 'b.line - a.line || a.column - b.column',
 		tests: ['tests/frontend.test.ts']
 	},
 	{
@@ -280,6 +339,69 @@ const mutants = [
 		from: "else if (element.operation === 'to') afterTo = true;",
 		to: "else if (element.operation === 'to') afterTo = false;",
 		tests: ['tests/frontend.test.ts', 'tests/rejections.test.ts']
+	},
+	{
+		name: 'every reader stops before a draw or coordinate command',
+		file: 'src/parser.ts',
+		from: "return this.at('\\\\draw') || this.at('\\\\coordinate');",
+		to: "return this.at('\\\\draw');",
+		tests: ['tests/rejections.test.ts']
+	},
+	{
+		name: 'a statement command inside braces does not end recovery',
+		file: 'src/parser.ts',
+		from: 'if (depth === 0 && this.statementStart()) return;',
+		to: 'if (this.statementStart()) return;',
+		tests: ['tests/frontend.test.ts', 'tests/rejections.test.ts']
+	},
+	{
+		name: 'recovery stops before the next statement command',
+		file: 'src/parser.ts',
+		from: 'if (depth === 0 && this.statementStart()) return;',
+		to: '',
+		tests: ['tests/rejections.test.ts']
+	},
+	{
+		name: 'a coordinate stops before the next statement command',
+		file: 'src/parser.ts',
+		from: "!this.at(';') && !this.at('(') && !this.statementStart())",
+		to: "!this.at(';') && !this.at('('))",
+		tests: ['tests/rejections.test.ts']
+	},
+	{
+		name: 'a name stops before the next statement command',
+		file: 'src/parser.ts',
+		from: "!this.at('(') && !this.at(';') && !this.statementStart())",
+		to: "!this.at('(') && !this.at(';'))",
+		tests: ['tests/rejections.test.ts']
+	},
+	{
+		name: 'an option list stops before the next statement command',
+		file: 'src/parser.ts',
+		from: "depth === 0 && (token.value === ';' || this.statementStart())",
+		to: "depth === 0 && token.value === ';'",
+		tests: ['tests/rejections.test.ts']
+	},
+	{
+		name: 'a statement command inside option braces is option text',
+		file: 'src/parser.ts',
+		from: "depth === 0 && (token.value === ';' || this.statementStart())",
+		to: "(token.value === ';' && depth === 0 || this.statementStart())",
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'draw options are checked even when the statement fails',
+		file: 'src/parser.ts',
+		from: 'this.checkOptions(keys, false);',
+		to: '',
+		tests: ['tests/rejections.test.ts']
+	},
+	{
+		name: 'environment options are checked even when the document fails',
+		file: 'src/parser.ts',
+		from: 'this.checkOptions(keys, true);',
+		to: '',
+		tests: ['tests/rejections.test.ts']
 	},
 	{
 		name: 'recovery stops at the next statement command',
@@ -361,7 +483,7 @@ const mutants = [
 	{
 		name: 'component option order and word boundaries survive',
 		file: 'src/lexer.ts',
-		from: 'if (end >= 0 && token.start > end) parts.push(\' \');',
+		from: 'if (end >= 0 && token.start > end && token.joined !== true) parts.push(\' \');',
 		to: '',
 		tests: ['tests/frontend.test.ts']
 	},
@@ -380,9 +502,23 @@ const mutants = [
 		tests: ['tests/frontend.test.ts']
 	},
 	{
+		name: 'a coordinate built on a failed point is still defined',
+		file: 'src/coordinates.ts',
+		from: 'define(statement.name, resolve(statement.at, base, first), statement.span);',
+		to: 'const point = resolve(statement.at, base, first); if (point !== undefined) define(statement.name, point, statement.span);',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'an inline name on a failed point is still defined',
+		file: 'src/coordinates.ts',
+		from: 'define(element.name, current, element.span);',
+		to: 'if (current !== undefined) define(element.name, current, element.span);',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
 		name: 'undefined names keep their precise diagnostic',
 		file: 'src/coordinates.ts',
-		from: 'if (point === undefined) reference',
+		from: 'if (!names.has(at.name)) reference',
 		to: 'if (false) reference',
 		tests: ['tests/frontend.test.ts']
 	},
@@ -462,27 +598,9 @@ try {
 	for (const path of ['src', 'tests']) await cp(join(root, path), join(sandbox, path), { recursive: true });
 	for (const path of ['package.json', 'tsconfig.json', 'vitest.config.ts']) await cp(join(root, path), join(sandbox, path));
 	await symlink(join(root, 'node_modules'), join(sandbox, 'node_modules'), 'dir');
-	const vitest = join(root, 'node_modules', 'vitest', 'vitest.mjs');
 	const survivors = [];
-	const reportPath = join(sandbox, 'mutation-report.json');
-	const run = async (tests) => {
-		await rm(reportPath, { force: true });
-		const result = spawnSync(process.execPath, [vitest, 'run', ...tests, '--reporter=json', `--outputFile=${reportPath}`], {
-			cwd: sandbox,
-			env: { ...process.env, FORCE_COLOR: '0' },
-			encoding: 'utf8',
-			timeout: 45_000
-		});
-		if (result.error !== undefined) throw result.error;
-		const report = JSON.parse(await readFile(reportPath, 'utf8'));
-		if (report.numTotalTests === 0 || result.status !== 0 && report.numFailedTests === 0) {
-			throw new Error(`Mutation run failed without an assertion failure: ${result.stdout}${result.stderr}`);
-		}
-		return { result, report };
-	};
-	const baseline = await run([...new Set(mutants.flatMap((mutant) => mutant.tests))]);
-	if (baseline.result.status !== 0 || !baseline.report.success) throw new Error('Mutation baseline is not green; fix the tests first.');
-	console.log(`BASELINE  ${baseline.report.numPassedTests} assertions-bearing tests pass before mutation`);
+	const baseline = await runSuites(sandbox, [...new Set(mutants.flatMap((mutant) => mutant.tests))]);
+	if (baseline.verdict !== 'passed') throw new Error(`Mutation baseline is not green (${baseline.verdict}); fix the tests first.\n${baseline.output}`);
 
 	for (const mutant of mutants) {
 		const path = join(sandbox, mutant.file);
@@ -493,13 +611,16 @@ try {
 		}
 		await writeFile(path, original.replace(mutant.from, mutant.to));
 		let result;
-		try { ({ result } = await run(mutant.tests)); }
-		finally { await writeFile(path, original); }
-		if (result.status === 0) {
-			survivors.push({ mutant, output: `${result.stdout}${result.stderr}` });
+		try {
+			result = await runSuites(sandbox, mutant.tests);
+		} finally {
+			await writeFile(path, original);
+		}
+		if (result.verdict === 'passed') {
+			survivors.push({ mutant, output: result.output });
 			console.error(`SURVIVED  ${mutant.name}`);
 		} else {
-			console.log(`KILLED    ${mutant.name}`);
+			console.log(`${result.verdict === 'timeout' ? 'TIMEOUT ' : 'KILLED  '}  ${mutant.name}`);
 		}
 	}
 

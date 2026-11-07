@@ -110,14 +110,14 @@ export function buildCircuit(segments: readonly Segment[], span: Span, diagnosti
 	}
 	const width = maxX - minX + 2 * MARGIN, height = maxY - minY + 2 * MARGIN;
 	if (width > SCHEMATIC_LIMITS.maximumBound || height > SCHEMATIC_LIMITS.maximumBound) {
-		limit(diagnostics, 'canvas extent', SCHEMATIC_LIMITS.maximumBound - 2 * MARGIN, span); return undefined;
+		limit(diagnostics, 'canvas extent', SCHEMATIC_LIMITS.maximumBound - 2 * MARGIN, 'draw the circuit in a smaller area', span); return undefined;
 	}
 	checkOverlaps(segments, vertices, minX, minY, diagnostics);
 	const junctions: Junction[] = [];
 	const anchors = new Map<number, Anchor>();
 	for (const [id, v] of vertices.entries()) {
 		if (v.degree < 3) continue;
-		if (junctions.length === LIMITS.junctions) { limit(diagnostics, 'junctions', LIMITS.junctions, v.span); return undefined; }
+		if (junctions.length === LIMITS.junctions) { limit(diagnostics, 'junctions', LIMITS.junctions, 'split the circuit across several documents', v.span); return undefined; }
 		const name = `J${junctions.length + 1}`;
 		junctions.push({ id: name, vertex: id, span: v.span });
 		anchors.set(id, { terminal: `${name}.node`, color: 'slate', order: -1, start: false, span: v.span });
