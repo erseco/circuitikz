@@ -210,6 +210,37 @@ describe('span-aware parser and resolver', () => {
 		expect(result.segments.map(({ from, to }) => [from, to])).toEqual(segments);
 	});
 
+	// Read back from TikZ (tectonic) with both (AB) at (1,2) and (A B) at (3,4) defined.
+	it.each([
+		{ name: 'a comment joins the two lines', tex: '(A% comment\nB)', at: { x: 100, y: 200 } },
+		{ name: 'leading blanks after a comment are dropped', tex: '(A% comment\n   \tB)', at: { x: 100, y: 200 } },
+		{ name: 'two comment lines still join', tex: '(A%\n%\nB)', at: { x: 100, y: 200 } },
+		{ name: 'a space before the comment is kept', tex: '(A % comment\nB)', at: { x: 300, y: 400 } },
+		{ name: 'a plain line break is a space', tex: '(A\nB)', at: { x: 300, y: 400 } }
+	])('reads a name across lines as TeX does: $name', ({ tex, at }) => {
+		const result = read(wrap(`\\coordinate (AB) at (1,2);\n\\coordinate (A B) at (3,4);\n\\draw ${tex} -- (0,0);`));
+		expect(result.diagnostics).toEqual([]);
+		expect(result.segments.at(-1)?.from).toEqual(at);
+	});
+
+	it('joins a commented line break in inline names and option keys too', () => {
+		const result = read(wrap('\\draw (1,1) coordinate (A%\nB) -- (0,0);\n\\draw (AB) -- (2,2);\n\\draw (0,0) to[american%\n resistor] (1,0);'));
+		expect(result.diagnostics).toEqual([]);
+		expect(result.segments[1]?.from).toEqual({ x: 100, y: 100 });
+		expect(result.tree?.statements[2]).toMatchObject({ elements: [{}, { keys: [{ name: 'americanresistor' }] }] });
+	});
+
+	it.each([
+		{ name: 'a duplicate name', tex: '\\coordinate (A) at (0,0);\n\\coordinate (A) at (1,1);', messages: ['Coordinate A is already defined; give the second definition a different name.'] },
+		{ name: 'cycle after to[...]', tex: '\\draw (0,0) to[R] (1,0) -- cycle;', messages: ['cycle after to[...] closes inside that component\'s drawing in CircuiTikZ; end the path at an explicit coordinate instead.'] },
+		{ name: 'a relative overflow', tex: '\\draw (90071992547409.91,0) -- ++(0.01,0);', messages: ['The coordinate exceeds the exact integer range; use smaller coordinates or relative offsets.'] },
+		// An unfinished last statement is dropped, so its names are not resolved and add nothing.
+		{ name: 'an unfinished last statement', tex: '\\draw (missing) -- (0,0', messages: ['Expected ); correct the statement before converting it.'] }
+	])('keeps coordinate diagnostics when the environment end is missing: $name', ({ tex, messages }) => {
+		const result = read(`\\begin{circuitikz}\n${tex}\n`);
+		expect(result.diagnostics.map((d) => d.message)).toEqual([...messages, 'Expected \\end{circuitikz}; correct the statement before converting it.']);
+	});
+
 	it('keeps names case-sensitive', () => {
 		expect(read(wrap('\\coordinate (a) at (1,1);\n\\draw (A) -- (0,0);')).diagnostics).toEqual([
 			{ code: 'reference', severity: 'error', message: 'Coordinate A is not defined; define it before using it.', line: 3, column: 7, endColumn: 10 }
