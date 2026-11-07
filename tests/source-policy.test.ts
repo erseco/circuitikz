@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import { describe, expect, it } from 'vitest';
+import * as ts from 'typescript/unstable/ast';
 
 /**
  * Rules REQUIREMENTS.md states, checked rather than trusted to review.
@@ -9,7 +10,7 @@ import { describe, expect, it } from 'vitest';
  */
 
 const sources = import.meta.glob('../src/**/*.ts', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
-const tests = import.meta.glob(['./**/*.ts', '!./source-policy.test.ts'], { query: '?raw', import: 'default', eager: true }) as Record<
+const tests = import.meta.glob(['./**/*.{ts,mjs}', '!./source-policy.test.ts'], { query: '?raw', import: 'default', eager: true }) as Record<
 	string,
 	string
 >;
@@ -45,6 +46,42 @@ const SOURCE_RULES: readonly (readonly [string, RegExp])[] = [
 	['a deep import into @schemd/core', word("from\\s+'@schemd/core/")]
 ];
 
+/** Use the installed TypeScript 7 scanner: quoted literals and comments are
+ * tokens, so multiline and double-quoted imports cannot bypass the line rules. */
+function syntaxOffenders(source: string): string[] {
+	const found: string[] = [];
+	const scanner = ts.createScanner(true, undefined, source);
+	const tokens: { kind: ts.SyntaxKind; value: string }[] = [];
+	const templates: number[] = [];
+	for (let kind = scanner.scan(); kind !== ts.SyntaxKind.EndOfFile; kind = scanner.scan()) {
+		const top = templates.length - 1;
+		if (kind === ts.SyntaxKind.OpenBraceToken && top >= 0) templates[top]! += 1;
+		if (kind === ts.SyntaxKind.CloseBraceToken && top >= 0) {
+			if (templates[top] === 0) {
+				kind = scanner.reScanTemplateToken(false);
+				if (kind === ts.SyntaxKind.TemplateTail) templates.pop();
+			} else templates[top]! -= 1;
+		}
+		if (kind === ts.SyntaxKind.TemplateHead) templates.push(0);
+		tokens.push({ kind, value: kind === ts.SyntaxKind.StringLiteral ? scanner.getTokenValue() : scanner.getTokenText() });
+	}
+	const forbidden = new Set(['process', 'require', 'console', 'eval', 'Function', 'RegExp', 'Date', 'performance', 'Intl',
+		'window', 'document', 'navigator', 'globalThis', 'fetch', 'XMLHttpRequest', 'WebSocket']);
+	for (let index = 0; index < tokens.length; index += 1) {
+		const token = tokens[index]!;
+		if (token.kind === ts.SyntaxKind.AnyKeyword) found.push('explicit any');
+		if (token.kind === ts.SyntaxKind.Identifier && forbidden.has(token.value)) found.push(`host or dynamic global ${token.value}`);
+		if (token.kind === ts.SyntaxKind.ImportKeyword && tokens[index + 1]?.kind === ts.SyntaxKind.OpenParenToken) found.push('dynamic import');
+		if (token.kind === ts.SyntaxKind.StringLiteral && ['from', 'import'].includes(tokens[index - 1]?.value ?? '')) {
+			const value = token.value;
+			if (value !== '@schemd/core' && !(value.startsWith('./') || value.startsWith('../'))) found.push(`external module ${value}`);
+			if ((value.startsWith('./') || value.startsWith('../')) && !value.endsWith('.js')) found.push(`relative extension ${value}`);
+		}
+		if (token.value === 'Math' && tokens[index + 1]?.value === '[' && tokens[index + 2]?.value === 'random') found.push('indexed randomness');
+	}
+	return found;
+}
+
 describe('source policy', () => {
 	it('finds the files it is meant to police', () => {
 		expect(Object.keys(sources).length).toBeGreaterThanOrEqual(3);
@@ -59,6 +96,20 @@ describe('source policy', () => {
 		const imports = offenders(sources, /from\s+'\.{1,2}\//);
 		expect(imports.length).toBeGreaterThan(0);
 		expect(imports.filter((line) => !/from\s+'\.{1,2}\/[^']+\.js'/.test(line))).toEqual([]);
+	});
+
+	it('enforces policy through TypeScript syntax tokens as well as text', () => {
+		for (const [name, source] of Object.entries(sources)) expect(syntaxOffenders(source), name).toEqual([]);
+		expect(syntaxOffenders('import x\nfrom "node:fs";')).toContain('external module node:fs');
+		expect(syntaxOffenders('export * from "@schemd/core/dist/a.js";')).toContain('external module @schemd/core/dist/a.js');
+		expect(syntaxOffenders('import x from "./missing-extension";')).toContain('relative extension ./missing-extension');
+		expect(syntaxOffenders('import\n("./a.js");')).toContain('dynamic import');
+		expect(syntaxOffenders('type X = Array<any>;')).toContain('explicit any');
+		expect(syntaxOffenders('Math["random"]();')).toContain('indexed randomness');
+		for (const name of ['window', 'document', 'process', 'console', 'eval', 'Function', 'Date', 'RegExp']) {
+			expect(syntaxOffenders(`${name}["x"];`)).toContain(`host or dynamic global ${name}`);
+		}
+		expect(syntaxOffenders('import type { SchematicFence } from "@schemd/core"; export * from "./a.js"; Math.floor(1);')).toEqual([]);
 	});
 
 	it('skips, focuses, or defers no test', () => {

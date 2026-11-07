@@ -28,8 +28,15 @@ import { runSuites } from './mutation-run.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-/* Type declarations and re-exports: nothing a mutant could change. */
-const EXEMPT = new Set(['src/ast.ts', 'src/index.ts', 'src/types.ts']);
+/* Type declarations and re-exports have no control flow.
+ * Limit enforcement is mutated at every M1 call site. Junctions and margin
+ * constants are reserved for M2, not exemptions for future logic; active
+ * source-length and scale constants have their own mutants.
+ * Equivalent mutant removed: loosening decimal's pre-multiply overflow guard
+ * cannot change an observable result: the final scale guard rejects that
+ * superset with the same diagnostic. The scale guard has a killed mutant.
+ */
+const EXEMPT = new Set(['src/index.ts', 'src/types.ts', 'src/ast.ts']);
 
 const mutants = [
 	{
@@ -75,74 +82,130 @@ const mutants = [
 		tests: ['tests/rejections.test.ts']
 	},
 	{
-		name: 'cycle after to[...] is rejected',
-		file: 'src/coordinates.ts',
-		from: "else if (element.operation === 'to') afterTo = true;",
-		to: "else if (element.operation === 'to') afterTo = false;",
-		tests: ['tests/frontend.test.ts', 'tests/rejections.test.ts']
+		name: 'comments end at CR as well as LF',
+		file: 'src/lexer.ts',
+		from: "while (cursor < source.length && source[cursor] !== '\\r' && source[cursor] !== '\\n')",
+		to: "while (cursor < source.length && source[cursor] !== '\\n')",
+		tests: ['tests/lexer.test.ts']
 	},
 	{
-		name: 'cycle closes the current subpath',
-		file: 'src/coordinates.ts',
-		from: 'if (element.kind === \'move\') { first = point;',
-		to: 'if (element === statement.elements[0]) { first = point;',
-		tests: ['tests/frontend.test.ts']
+		name: 'columns count UTF-16 units',
+		file: 'src/lexer.ts',
+		from: 'column += cursor - start;',
+		to: 'column += [...source.slice(start, cursor)].length;',
+		tests: ['tests/lexer.test.ts']
 	},
 	{
-		name: 'cycles use the first path point',
-		file: 'src/coordinates.ts',
-		from: 'if (at.kind === \'cycle\') return first;',
-		to: 'if (at.kind === \'cycle\') return base;',
-		tests: ['tests/frontend.test.ts']
+		name: 'CRLF is one newline',
+		file: 'src/lexer.ts',
+		from: "c === '\\r' && source[cursor + 1] === '\\n' ? 2 : 1",
+		to: '1',
+		tests: ['tests/lexer.test.ts']
 	},
 	{
-		name: 'duplicate names are diagnosed',
-		file: 'src/coordinates.ts',
-		from: 'if (names.has(name)) reference',
-		to: 'if (false) reference',
-		tests: ['tests/frontend.test.ts']
+		name: 'escaped percent does not begin a comment',
+		file: 'src/lexer.ts',
+		from: "kind = 'command';",
+		to: "if (source[cursor] === '%') { cursor = source.length; } kind = 'command';",
+		tests: ['tests/lexer.test.ts']
 	},
 	{
-		name: 'plus leaves the relative reference unchanged',
-		file: 'src/coordinates.ts',
-		from: 'element.at.kind !== \'point\' || element.at.mode !== \'+\'',
-		to: 'true',
-		tests: ['tests/frontend.test.ts']
+		name: 'a control symbol takes a whole code point',
+		file: 'src/lexer.ts',
+		from: 'cursor += source.codePointAt(cursor)! > 0xffff ? 2 : 1;',
+		to: 'cursor += 1;',
+		tests: ['tests/lexer.test.ts']
 	},
 	{
-		name: 'relative increments use their reference',
-		file: 'src/coordinates.ts',
-		from: 'at.x + base.x',
-		to: 'at.x',
-		tests: ['tests/frontend.test.ts']
+		name: 'the scan stops at the brace ceiling',
+		file: 'src/lexer.ts',
+		from: "LIMITS.braceDepth, 'use fewer nested braces', token); break; }",
+		to: "LIMITS.braceDepth, 'use fewer nested braces', token); }",
+		tests: ['tests/lexer.test.ts']
 	},
 	{
-		name: 'relative sums reject overflow',
-		file: 'src/coordinates.ts',
-		from: '!Number.isSafeInteger(x) || !Number.isSafeInteger(y)',
-		to: 'false',
-		tests: ['tests/frontend.test.ts']
+		name: 'the brace nesting ceiling is 32',
+		file: 'src/limits.ts',
+		from: 'braceDepth: 32',
+		to: 'braceDepth: 33',
+		tests: ['tests/lexer.test.ts']
 	},
 	{
-		name: 'undefined names keep their precise diagnostic',
-		file: 'src/coordinates.ts',
-		from: 'if (!names.has(at.name)) reference',
-		to: 'if (false) reference',
-		tests: ['tests/frontend.test.ts']
+		name: 'diagnostics sort by line then column',
+		file: 'src/diagnostics.ts',
+		from: 'a.line - b.line || a.column - b.column',
+		to: 'b.line - a.line || a.column - b.column',
+		tests: ['tests/lexer.test.ts']
 	},
 	{
-		name: 'a coordinate built on a failed point is still defined',
-		file: 'src/coordinates.ts',
-		from: 'define(statement.name, resolve(statement.at, base, first), statement.span);',
-		to: 'const point = resolve(statement.at, base, first); if (point !== undefined) define(statement.name, point, statement.span);',
-		tests: ['tests/frontend.test.ts']
+		name: 'a junction is recognised by its kind',
+		file: 'src/topology.ts',
+		from: "netlist.nodes.filter((node) => node.kind === 'junction')",
+		to: "netlist.nodes.filter((node) => node.kind === 'port')",
+		tests: ['tests/topology.test.ts', 'tests/conformance.test.ts']
 	},
 	{
-		name: 'an inline name on a failed point is still defined',
-		file: 'src/coordinates.ts',
-		from: 'define(element.name, current, element.span);',
-		to: 'if (current !== undefined) define(element.name, current, element.span);',
-		tests: ['tests/frontend.test.ts']
+		name: 'junction terminals are left out of the circuit',
+		file: 'src/topology.ts',
+		from: 'net.terminals.filter((terminal) => !junctions.has(terminal.componentId))',
+		to: 'net.terminals.filter(() => true)',
+		tests: ['tests/topology.test.ts', 'tests/conformance.test.ts']
+	},
+	{
+		name: 'a terminal written twice on a net counts once',
+		file: 'src/topology.ts',
+		from: '.map((net) => [...new Set(net)].sort(compare))',
+		to: '.map((net) => [...net].sort(compare))',
+		tests: ['tests/topology.test.ts']
+	},
+	{
+		name: 'a net with no terminal is dropped',
+		file: 'src/topology.ts',
+		from: '.filter((net) => net.length > 0)',
+		to: '.filter(() => true)',
+		tests: ['tests/topology.test.ts']
+	},
+	{
+		name: 'terminals sort by code unit, not locale',
+		file: 'src/topology.ts',
+		from: 'return left < right ? -1 : left > right ? 1 : 0;',
+		to: 'return left.localeCompare(right);',
+		tests: ['tests/topology.test.ts']
+	},
+	{
+		name: 'nets sort by their whole contents',
+		file: 'src/topology.ts',
+		from: "compare(left.join('\\n'), right.join('\\n'))",
+		to: 'compare(left[0]!, right[0]!)',
+		tests: ['tests/topology.test.ts']
+	},
+	{
+		name: 'two spellings of one circuit compare equal',
+		file: 'src/topology.ts',
+		from: 'for (const net of canonical(nets))',
+		to: 'for (const net of nets)',
+		tests: ['tests/topology.test.ts']
+	},
+	{
+		name: 'a terminal that lost its connection is named as such',
+		file: 'src/topology.ts',
+		from: 'if (other === undefined) return',
+		to: 'if (false) return',
+		tests: ['tests/topology.test.ts']
+	},
+	{
+		name: 'a terminal on the wrong net is a difference',
+		file: 'src/topology.ts',
+		from: 'if (other !== net) return',
+		to: 'if (false) return',
+		tests: ['tests/topology.test.ts', 'tests/conformance.test.ts']
+	},
+	{
+		name: 'a connection the TeX never made is a difference',
+		file: 'src/topology.ts',
+		from: 'if (!wanted.has(terminal)) return',
+		to: 'if (false) return',
+		tests: ['tests/topology.test.ts']
 	},
 	{
 		name: 'multiline spans stay on the first line',
@@ -192,6 +255,55 @@ const mutants = [
 		from: 'value > Math.floor((Number.MAX_SAFE_INTEGER - fraction * (places === 1 ? 10 : 1)) / SCALE)',
 		to: 'false',
 		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'relative sums reject overflow',
+		file: 'src/coordinates.ts',
+		from: '!Number.isSafeInteger(x) || !Number.isSafeInteger(y)',
+		to: 'false',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'plus leaves the relative reference unchanged',
+		file: 'src/coordinates.ts',
+		from: 'element.at.kind !== \'point\' || element.at.mode !== \'+\'',
+		to: 'true',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'relative increments use their reference',
+		file: 'src/coordinates.ts',
+		from: 'at.x + base.x',
+		to: 'at.x',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'duplicate names are diagnosed',
+		file: 'src/coordinates.ts',
+		from: 'if (names.has(name)) reference',
+		to: 'if (false) reference',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'cycles use the first path point',
+		file: 'src/coordinates.ts',
+		from: 'if (at.kind === \'cycle\') return first;',
+		to: 'if (at.kind === \'cycle\') return base;',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'cycle closes the current subpath',
+		file: 'src/coordinates.ts',
+		from: 'if (element.kind === \'move\') { first = point;',
+		to: 'if (element === statement.elements[0]) { first = point;',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'cycle after to[...] is rejected',
+		file: 'src/coordinates.ts',
+		from: "else if (element.operation === 'to') afterTo = true;",
+		to: "else if (element.operation === 'to') afterTo = false;",
+		tests: ['tests/frontend.test.ts', 'tests/rejections.test.ts']
 	},
 	{
 		name: 'every reader stops before a draw or coordinate command',
@@ -355,6 +467,27 @@ const mutants = [
 		tests: ['tests/frontend.test.ts']
 	},
 	{
+		name: 'a coordinate built on a failed point is still defined',
+		file: 'src/coordinates.ts',
+		from: 'define(statement.name, resolve(statement.at, base, first), statement.span);',
+		to: 'const point = resolve(statement.at, base, first); if (point !== undefined) define(statement.name, point, statement.span);',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'an inline name on a failed point is still defined',
+		file: 'src/coordinates.ts',
+		from: 'define(element.name, current, element.span);',
+		to: 'if (current !== undefined) define(element.name, current, element.span);',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
+		name: 'undefined names keep their precise diagnostic',
+		file: 'src/coordinates.ts',
+		from: 'if (!names.has(at.name)) reference',
+		to: 'if (false) reference',
+		tests: ['tests/frontend.test.ts']
+	},
+	{
 		name: 'missing semicolons are not accepted at environment end',
 		file: 'src/parser.ts',
 		from: 'if (this.accept(\';\')) return true;',
@@ -374,132 +507,6 @@ const mutants = [
 		from: 'export const SCALE = 100;',
 		to: 'export const SCALE = 99;',
 		tests: ['tests/frontend.test.ts']
-	},
-	{
-		name: 'comments end at CR as well as LF',
-		file: 'src/lexer.ts',
-		from: "while (cursor < source.length && source[cursor] !== '\\r' && source[cursor] !== '\\n')",
-		to: "while (cursor < source.length && source[cursor] !== '\\n')",
-		tests: ['tests/lexer.test.ts']
-	},
-	{
-		name: 'columns count UTF-16 units',
-		file: 'src/lexer.ts',
-		from: 'column += cursor - start;',
-		to: 'column += [...source.slice(start, cursor)].length;',
-		tests: ['tests/lexer.test.ts']
-	},
-	{
-		name: 'CRLF is one newline',
-		file: 'src/lexer.ts',
-		from: "c === '\\r' && source[cursor + 1] === '\\n' ? 2 : 1",
-		to: '1',
-		tests: ['tests/lexer.test.ts']
-	},
-	{
-		name: 'escaped percent does not begin a comment',
-		file: 'src/lexer.ts',
-		from: "kind = 'command';",
-		to: "if (source[cursor] === '%') { cursor = source.length; } kind = 'command';",
-		tests: ['tests/lexer.test.ts']
-	},
-	{
-		name: 'a control symbol takes a whole code point',
-		file: 'src/lexer.ts',
-		from: 'cursor += source.codePointAt(cursor)! > 0xffff ? 2 : 1;',
-		to: 'cursor += 1;',
-		tests: ['tests/lexer.test.ts']
-	},
-	{
-		name: 'the scan stops at the brace ceiling',
-		file: 'src/lexer.ts',
-		from: "LIMITS.braceDepth, 'use fewer nested braces', token); break; }",
-		to: "LIMITS.braceDepth, 'use fewer nested braces', token); }",
-		tests: ['tests/lexer.test.ts']
-	},
-	{
-		name: 'the brace nesting ceiling is 32',
-		file: 'src/limits.ts',
-		from: 'braceDepth: 32',
-		to: 'braceDepth: 33',
-		tests: ['tests/lexer.test.ts']
-	},
-	{
-		name: 'diagnostics sort by line then column',
-		file: 'src/diagnostics.ts',
-		from: 'a.line - b.line || a.column - b.column',
-		to: 'b.line - a.line || a.column - b.column',
-		tests: ['tests/lexer.test.ts']
-	},
-	{
-		name: 'a junction is recognised by its kind',
-		file: 'src/topology.ts',
-		from: "netlist.nodes.filter((node) => node.kind === 'junction')",
-		to: "netlist.nodes.filter((node) => node.kind === 'port')",
-		tests: ['tests/topology.test.ts', 'tests/conformance.test.ts']
-	},
-	{
-		name: 'junction terminals are left out of the circuit',
-		file: 'src/topology.ts',
-		from: 'net.terminals.filter((terminal) => !junctions.has(terminal.componentId))',
-		to: 'net.terminals.filter(() => true)',
-		tests: ['tests/topology.test.ts', 'tests/conformance.test.ts']
-	},
-	{
-		name: 'a terminal written twice on a net counts once',
-		file: 'src/topology.ts',
-		from: '.map((net) => [...new Set(net)].sort(compare))',
-		to: '.map((net) => [...net].sort(compare))',
-		tests: ['tests/topology.test.ts']
-	},
-	{
-		name: 'a net with no terminal is dropped',
-		file: 'src/topology.ts',
-		from: '.filter((net) => net.length > 0)',
-		to: '.filter(() => true)',
-		tests: ['tests/topology.test.ts']
-	},
-	{
-		name: 'terminals sort by code unit, not locale',
-		file: 'src/topology.ts',
-		from: 'return left < right ? -1 : left > right ? 1 : 0;',
-		to: 'return left.localeCompare(right);',
-		tests: ['tests/topology.test.ts']
-	},
-	{
-		name: 'nets sort by their whole contents',
-		file: 'src/topology.ts',
-		from: "compare(left.join('\\n'), right.join('\\n'))",
-		to: 'compare(left[0]!, right[0]!)',
-		tests: ['tests/topology.test.ts']
-	},
-	{
-		name: 'two spellings of one circuit compare equal',
-		file: 'src/topology.ts',
-		from: 'for (const net of canonical(nets))',
-		to: 'for (const net of nets)',
-		tests: ['tests/topology.test.ts']
-	},
-	{
-		name: 'a terminal that lost its connection is named as such',
-		file: 'src/topology.ts',
-		from: 'if (other === undefined) return',
-		to: 'if (false) return',
-		tests: ['tests/topology.test.ts']
-	},
-	{
-		name: 'a terminal on the wrong net is a difference',
-		file: 'src/topology.ts',
-		from: 'if (other !== net) return',
-		to: 'if (false) return',
-		tests: ['tests/topology.test.ts', 'tests/conformance.test.ts']
-	},
-	{
-		name: 'a connection the TeX never made is a difference',
-		file: 'src/topology.ts',
-		from: 'if (!wanted.has(terminal)) return',
-		to: 'if (false) return',
-		tests: ['tests/topology.test.ts']
 	}
 ];
 
