@@ -78,3 +78,9 @@ vertically. No expected document changes, since core only draws the plates diffe
 After schemd/circuitikz#10: the peer and development range is `^1.3.1`, taken from `main`, so no
 supported core draws the battery plates the wrong way round. The lockfile was already on 1.3.1, so
 no expected document changes.
+
+After the upstream reviews of the parser (schemd/circuitikz#11) and coordinates (#12): recovery
+stops at the next statement command, option checks survive a failing statement, a commented line end
+joins a name as in TeX, and a missing `\end{circuitikz}` keeps the completed statements. M3 measures
+9752 B gzip / 8801 B brotli, after 17 B were won back by generating the 24 pole styles, so the gzip
+gate moves to 9.75 KiB (R-8.5.4); brotli keeps 9 KiB, and both stay below the 12 KiB ceiling.

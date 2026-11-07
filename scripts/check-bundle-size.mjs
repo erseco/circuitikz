@@ -32,8 +32,13 @@ const BUDGETS = [
 		   measure 8615 -> 8892 B gzip on M2 and 9181 -> 9458 B gzip / 8278 -> 8530 B
 		   brotli on M3. Core 1.2.0 unlabelled emission and the closed-switch
 		   rejection bring M3 to 9567 B gzip / 8620 B brotli, so the gzip gate
-		   moves to 9.5 KiB; brotli keeps 9 KiB. Both stay below R-8.5.3's 12 KiB ceiling. */
-		maxGzipBytes: 9.5 * 1024,
+		   moves to 9.5 KiB; brotli keeps 9 KiB. Both stay below R-8.5.3's 12 KiB ceiling.
+		   The upstream parser and coordinate reviews (statement-command recovery, option
+		   checks that survive a failing statement, TeX comment joins in names, completed
+		   statements kept after a missing end) bring M3 to 9752 B gzip / 8801 B brotli,
+		   after 17 B were won back by generating the pole styles. The gzip gate moves to
+		   9.75 KiB; brotli keeps 9 KiB. */
+		maxGzipBytes: 9.75 * 1024,
 		maxBrotliBytes: 9 * 1024
 	}
 ];
