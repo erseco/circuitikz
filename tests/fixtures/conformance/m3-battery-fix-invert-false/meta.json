@@ -1,0 +1,21 @@
+{
+  "origin": "CircuiTikZ 226cd409d8b7625a42d0a084eef085e4e56f86d6 tex/pgfcircbipoles.tex, pgfcircmonopoles.tex; REQUIREMENTS.md M3",
+  "note": "Source-verified fixbatteries composed with invert for multi-cell and thick-plate battery shapes.",
+  "fence": "schemd bounds=\"760x160\" title=\"Converted CircuiTikZ circuit\"",
+  "connectivity": [
+    [
+      "R1.in"
+    ],
+    [
+      "R1.out",
+      "B1.negative"
+    ],
+    [
+      "B1.positive",
+      "C1.in"
+    ],
+    [
+      "C1.out"
+    ]
+  ]
+}

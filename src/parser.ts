@@ -34,9 +34,14 @@ class Parser {
 
 	/** Skip exactly one broken statement, respecting braces and environment end.
 	 * A statement command at depth 0 starts the next statement, so it is never skipped (R-4.2.3). */
-	private recover(): void {
+	private recover(start: number): void {
 		if (this.synced) { this.synced = false; return; }
 		let depth = 0;
+		for (let i = start; i < this.cursor; i += 1) {
+			if (this.tokens[i]!.value === '{') depth += 1;
+			else if (this.tokens[i]!.value === '}') depth = Math.max(0, depth - 1);
+		}
+		if (this.tokens[this.cursor - 1]!.value === ';' && depth === 0) return;
 		while (!this.boundary()) {
 			if (depth === 0 && this.statementStart()) return;
 			const token = this.take();
@@ -110,6 +115,11 @@ class Parser {
 		return false;
 	}
 
+	private component(span: Span): boolean {
+		if (this.components === LIMITS.components) { limit(this.diagnostics, 'components', LIMITS.components, 'split the circuit across several documents', span); return false; }
+		this.components += 1; return true;
+	}
+
 	private statement(): Statement | undefined {
 		const start = this.take();
 		if (start.value === '\\coordinate') {
@@ -129,6 +139,13 @@ class Parser {
 		while (!this.boundary() && !this.at(';')) {
 			const operation = this.token;
 			if (elements.length === LIMITS.pathElements) { limit(this.diagnostics, 'path elements per statement', LIMITS.pathElements, 'split the path into several \\draw statements', operation); return undefined; }
+			if (this.accept('node')) {
+				if (!this.at('[')) { unsupported(this.diagnostics, 'node without [ground]{}', operation); return undefined; }
+				const nodeKeys = this.options();
+				if (nodeKeys === undefined || !this.expect('{') || !this.expect('}') || !this.component(operation)) return undefined;
+				elements.push({ kind: 'ground', keys: nodeKeys, span: through(operation, this.tokens[this.cursor - 1]!) });
+				continue;
+			}
 			if (this.accept('coordinate')) {
 				const name = this.name();
 				if (name === undefined) return undefined;
@@ -153,8 +170,7 @@ class Parser {
 				if (parsed === undefined) return undefined;
 				componentKeys = parsed;
 				if (!parsed.some((key) => key.name === 'short')) {
-					if (this.components === LIMITS.components) { limit(this.diagnostics, 'components', LIMITS.components, 'split the circuit across several documents', operation); return undefined; }
-					this.components += 1;
+					if (!this.component(operation)) return undefined;
 				}
 			}
 			const operationSpan = through(operation, this.tokens[this.cursor - 1]!);
@@ -178,8 +194,9 @@ class Parser {
 		while (!this.boundary()) {
 			if (count === LIMITS.statements) { limit(this.diagnostics, 'statements', LIMITS.statements, 'split the circuit across several documents', this.token); return undefined; }
 			count += 1;
+			const start = this.cursor;
 			const statement = this.statement();
-			if (statement === undefined) this.recover();
+			if (statement === undefined) this.recover(start);
 			else statements.push(statement);
 		}
 		// Every statement read so far is complete, so later phases still report on it (R-3.4).

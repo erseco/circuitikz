@@ -29,9 +29,11 @@ export function labelOf(tokens: readonly Token[], source: string, diagnostics: D
 			else unsupported(diagnostics, `Label command ${token.value}`, token);
 			continue;
 		}
+		let offset = 0;
 		for (const c of token.value) {
 			if (/[\p{L}\p{N}]/u.test(c) || " .,-+/():'".includes(c) || math && '{}_^'.includes(c)) output.push(c);
-			else unsupported(diagnostics, `Label character ${c}`, token);
+			else unsupported(diagnostics, `Label character ${c}`, { ...token, start: token.start + offset, end: token.start + offset + c.length, column: token.column + offset, endColumn: token.column + offset + c.length });
+			offset += c.length;
 		}
 	}
 	if (output.length === 0) { syntax(diagnostics, 'a non-empty label', tokens[0]!); return undefined; }

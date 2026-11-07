@@ -17,7 +17,7 @@ async function fuzz(converter, args = ['--cases=1', '--seed=1']) {
 		await cp('scripts/fuzz.mjs', join(directory, 'scripts/fuzz.mjs'));
 		await writeFile(join(directory, 'package.json'), '{"type":"module"}');
 		await writeFile(join(directory, 'dist/index.js'), converter);
-		await writeFile(join(directory, 'dist/limits.js'), 'export const LIMITS = {sourceLength:4,braceDepth:2,statements:2,pathElements:2,components:2};');
+		await writeFile(join(directory, 'dist/limits.js'), 'export const LIMITS = {sourceLength:4,braceDepth:2,junctions:2,statements:2,pathElements:2,components:2};');
 		await writeFile(join(directory, 'tests/fixtures/conformance/one/input.tex'), '\\begin{circuitikz}\\end{circuitikz}');
 		await writeFile(join(directory, 'tests/fixtures/rejections/two/input.tex'), '\\begin{circuitikz}\\draw (0,0)\\end{circuitikz}');
 		const result = spawnSync(process.execPath, ['scripts/fuzz.mjs', ...args], { cwd: directory, encoding: 'utf8', timeout: 15_000 });
