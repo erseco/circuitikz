@@ -40,6 +40,48 @@ const EXEMPT = new Set(['src/index.ts', 'src/types.ts', 'src/ast.ts']);
 
 const mutants = [
 	{
+		name: 'a line end taken by a comment is not a space',
+		file: 'src/lexer.ts',
+		from: 'if (!comment) space = true;',
+		to: 'space = true;',
+		tests: ['tests/lexer.test.ts', 'tests/frontend.test.ts']
+	},
+	{
+		name: 'leading blanks after a line end are not a space',
+		file: 'src/lexer.ts',
+		from: 'if (!lineStart) space = true;',
+		to: 'space = true;',
+		tests: ['tests/lexer.test.ts', 'tests/frontend.test.ts']
+	},
+	{
+		name: 'blanks before a comment are a space',
+		file: 'src/lexer.ts',
+		from: 'if (!lineStart) space = true;',
+		to: '',
+		tests: ['tests/lexer.test.ts', 'tests/frontend.test.ts']
+	},
+	{
+		name: 'a line end after a comment line still counts on the next line',
+		file: 'src/lexer.ts',
+		from: "comment = false;\n\t\t\tlineStart = true;",
+		to: "lineStart = true;",
+		tests: ['tests/lexer.test.ts']
+	},
+	{
+		name: 'a joined gap is no word boundary',
+		file: 'src/lexer.ts',
+		from: 'token.start > end && token.joined !== true',
+		to: 'token.start > end',
+		tests: ['tests/frontend.test.ts', 'tests/rejections.test.ts']
+	},
+	{
+		name: 'completed statements survive a missing environment end',
+		file: 'src/parser.ts',
+		from: "this.token); return { span, keys, statements }; }",
+		to: "this.token); return undefined; }",
+		tests: ['tests/rejections.test.ts']
+	},
+	{
 		name: 'comments end at CR as well as LF',
 		file: 'src/lexer.ts',
 		from: "while (cursor < source.length && source[cursor] !== '\\r' && source[cursor] !== '\\n')",
@@ -406,7 +448,7 @@ const mutants = [
 	{
 		name: 'component option order and word boundaries survive',
 		file: 'src/lexer.ts',
-		from: 'if (end >= 0 && token.start > end) parts.push(\' \');',
+		from: 'if (end >= 0 && token.start > end && token.joined !== true) parts.push(\' \');',
 		to: '',
 		tests: ['tests/frontend.test.ts']
 	},

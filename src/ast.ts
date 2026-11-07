@@ -10,6 +10,9 @@ export interface Span {
 export interface Token extends Span {
 	readonly value: string;
 	readonly kind: 'command' | 'atom' | 'symbol' | 'eof';
+	/** Set when the gap before this token holds no TeX space: only comments, with the line ends
+	 * and leading blanks they swallow. */
+	readonly joined?: true;
 }
 
 export interface Key {
