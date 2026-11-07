@@ -68,19 +68,20 @@ export function coordinate(tokens: readonly Token[], mode: 'absolute' | '+' | '+
 	return x === undefined || y === undefined ? undefined : { kind: 'point', x, y, mode, span };
 }
 
-/** Resolve names and relative reference points in source order, without recursion. */
+/** Resolve names and relative reference points in source order, without recursion.
+ * A name defined from a point that already failed is kept with no position: it is defined, so
+ * a second definition is still reported, and using it adds no second error for the same cause. */
 export function resolveCoordinates(tree: SyntaxTree, diagnostics: Diagnostics): ResolvedSegment[] {
-	const names = new Map<string, Point>();
+	const names = new Map<string, Point | undefined>();
 	const segments: ResolvedSegment[] = [];
-	const define = (name: string, point: Point, span: Span): void => {
+	const define = (name: string, point: Point | undefined, span: Span): void => {
 		if (names.has(name)) reference(diagnostics, name, true, span);
 		else names.set(name, point);
 	};
 	const resolve = (at: Coordinate, base: Point | undefined, first: Point | undefined): Point | undefined => {
 		if (at.kind === 'reference') {
-			const point = names.get(at.name);
-			if (point === undefined) reference(diagnostics, at.name, false, at.span);
-			return point;
+			if (!names.has(at.name)) reference(diagnostics, at.name, false, at.span);
+			return names.get(at.name);
 		}
 		if (at.kind === 'cycle') return first;
 		if (at.mode === 'absolute') return { x: at.x, y: at.y };
@@ -95,14 +96,13 @@ export function resolveCoordinates(tree: SyntaxTree, diagnostics: Diagnostics): 
 		let base: Point | undefined = current;
 		let first: Point | undefined = current;
 		if (statement.kind === 'coordinate') {
-			const point = resolve(statement.at, base, first);
-			if (point !== undefined) define(statement.name, point, statement.span);
+			define(statement.name, resolve(statement.at, base, first), statement.span);
 			continue;
 		}
 		let afterTo = false;
 		for (const element of statement.elements) {
 			if (element.kind === 'name') {
-				if (current !== undefined) define(element.name, current, element.span);
+				define(element.name, current, element.span);
 				continue;
 			}
 			// TikZ closes `cycle` to the start of the current subpath, i.e. the last move-to.

@@ -34,14 +34,12 @@ export function convertCircuitikz(source: string, options?: ConvertCircuitikzOpt
 	const settings = optionsOf(options);
 	const diagnostics = new Diagnostics(settings.strict);
 	if (source.length > settings.maxSourceLength) {
-		limit(diagnostics, 'source length', settings.maxSourceLength, { start: 0, end: 0, line: 1, column: 1, endColumn: 1 });
+		limit(diagnostics, 'source length', settings.maxSourceLength, 'convert a shorter document', { start: 0, end: 0, line: 1, column: 1, endColumn: 1 });
 	} else {
 		const tokens = scan(source, diagnostics);
 		if (diagnostics.items.length === 0) {
-			const tree = parse(tokens, diagnostics);
+			const tree = parse(tokens, diagnostics, (keys, environment) => keysOf(keys, diagnostics, environment));
 			if (tree !== undefined) {
-				keysOf(tree.keys, diagnostics, true);
-				for (const statement of tree.statements) if (statement.kind === 'draw') keysOf(statement.keys, diagnostics, false);
 				resolveCoordinates(tree, diagnostics);
 				if (!diagnostics.items.some((item) => item.severity === 'error')) pending(diagnostics, tree.span);
 			}

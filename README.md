@@ -119,7 +119,7 @@ and brace nesting depth 32. A limit is inclusive. Junction construction and its 
 | `syntax` | Missing delimiter, malformed options or excessive precision | Correct the named token or decimal |
 | `unsupported` | Environment, statement, path, numeric form, key, or the pending-conversion marker | Use the documented grammar; await M2 for actual conversion |
 | `reference` | Undefined or repeated named coordinate | Define first, or rename the duplicate |
-| `limit` | Resource budget or exact-integer overflow | Split the circuit or reduce coordinates |
+| `limit` | Resource budget or exact-integer overflow | Follow the advice in the message, or use smaller coordinates |
 | `geometry` | Reserved for M2 geometry checks | Not produced by M1 |
 | `internal` | Reserved for M2 compiler/oracle verification failures | Not produced by M1 |
 
@@ -130,8 +130,8 @@ may produce warnings. The 37 rejection fixtures pin full messages and positions.
 ## Compatibility and verification
 
 TypeScript strict checking, ESM with `.js` relative imports, Node.js 24+, browsers and Web Workers.
-No runtime dependencies; `@schemd/core` is the sole peer, with the existing `^1.1.0` range.
-The lockfile currently tests core 1.1.0. No dependency or public type changes were introduced.
+No runtime dependencies; `@schemd/core` is the sole peer, with the `^1.3.1` range that `main` uses,
+and the lockfile tests core 1.3.1. No public type changes were introduced.
 
 ```sh
 bun ci
@@ -160,3 +160,8 @@ remain unchanged and continue to compile, route on the first pass and match thei
 
 Read [CONTRIBUTING.md](./CONTRIBUTING.md) before contributing. Maintainer design decisions and review
 remain required; no releases, tags or upstream comments are created by this change.
+
+## Community
+
+[Contributing](./CONTRIBUTING.md) · [Support](./SUPPORT.md) · [Security](./SECURITY.md) ·
+[Code of Conduct](./CODE_OF_CONDUCT.md) · [Maintainers](./MAINTAINERS.md)

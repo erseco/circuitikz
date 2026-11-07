@@ -4,6 +4,7 @@ export default defineConfig({
 	test: {
 		environment: 'node',
 		include: ['tests/**/*.test.{ts,mjs}'],
+		exclude: ['tests/fixtures/**'],
 		coverage: {
 			provider: 'v8',
 			include: ['src/**/*.ts'],
