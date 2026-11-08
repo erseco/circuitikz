@@ -91,11 +91,11 @@ describe('fuzz infrastructure', () => {
 		expect(failure?.error).toContain(expected);
 	});
 
-	// Controls: inputs at the edge of the contract that a correct converter may return.
+	// Controls: results at the edge of the contract that a correct converter may return; the span control covers CR, CRLF and emoji inputs.
 	it.each([
 		{ name: 'a success core compiles, with a warning', converter: `return {...${accepted('')},diagnostics:[${error("severity:'warning'")}]};` },
 		{ name: 'two diagnostics at one position', converter: `return ${rejected(`[${error('')},${error('')}]`)};` },
-		{ name: "a span one past each input's end (CR, CRLF, emoji)", converter: atEnd('/\\r\\n|\\r|\\n/') }
+		{ name: "a span one past each input's end", converter: atEnd('/\\r\\n|\\r|\\n/') }
 	])('passes a converter that returns $name', async ({ converter }) => {
 		const result = await fuzz(`export function convertCircuitikz(t){${converter}}`, ['--cases=200', '--seed=1']);
 		expect(result.output).toContain('PASS: 200 reproducible fuzz cases (400 conversions).');
