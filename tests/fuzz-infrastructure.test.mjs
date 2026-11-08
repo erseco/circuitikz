@@ -95,7 +95,7 @@ describe('fuzz infrastructure', () => {
 	it.each([
 		{ name: 'a success core compiles, with a warning', converter: `return {...${accepted('')},diagnostics:[${error("severity:'warning'")}]};` },
 		{ name: 'two diagnostics at one position', converter: `return ${rejected(`[${error('')},${error('')}]`)};` },
-		{ name: "a span one past each input's end, CR, CRLF and emoji included", converter: atEnd('/\\r\\n|\\r|\\n/') }
+		{ name: "a span one past each input's end (CR, CRLF, emoji)", converter: atEnd('/\\r\\n|\\r|\\n/') }
 	])('passes a converter that returns $name', async ({ converter }) => {
 		const result = await fuzz(`export function convertCircuitikz(t){${converter}}`, ['--cases=200', '--seed=1']);
 		expect(result.output).toContain('PASS: 200 reproducible fuzz cases (400 conversions).');
