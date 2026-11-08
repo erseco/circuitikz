@@ -63,12 +63,12 @@ describe('fuzz infrastructure', () => {
 		{ name: 'diagnostics out of order', converter: `return ${rejected(`[${error('column:3,endColumn:3')},${error('')}]`)};`, error: 'AssertionError' },
 		{ name: 'an internal diagnostic', converter: `return ${rejected(`[${error("code:'internal'")}]`)};`, error: 'An internal diagnostic is always a converter bug.' },
 		{ name: 'an unknown diagnostic field', converter: `return ${rejected(`[${error('extra:1')}]`)};`, error: 'AssertionError' },
-		{ name: 'a rejection that still returns source', converter: `return {ok:false,source:'x',fence:undefined,sourceMap:[],diagnostics:[${error('')}]};`, error: 'AssertionError' },
-		{ name: 'a rejection that still returns a fence', converter: `return {ok:false,source:undefined,fence:{},sourceMap:[],diagnostics:[${error('')}]};`, error: 'AssertionError' },
-		{ name: 'a rejection that still returns a source map', converter: `return {ok:false,source:undefined,fence:undefined,sourceMap:[{}],diagnostics:[${error('')}]};`, error: 'AssertionError' },
+		{ name: 'a rejection with a source', converter: `return {ok:false,source:'x',fence:undefined,sourceMap:[],diagnostics:[${error('')}]};`, error: 'AssertionError' },
+		{ name: 'a rejection with a fence', converter: `return {ok:false,source:undefined,fence:{},sourceMap:[],diagnostics:[${error('')}]};`, error: 'AssertionError' },
+		{ name: 'a rejection with a source map', converter: `return {ok:false,source:undefined,fence:undefined,sourceMap:[{}],diagnostics:[${error('')}]};`, error: 'AssertionError' },
 		{ name: 'diagnostics that are not an array', converter: 'return {ok:true,source:"",fence:undefined,sourceMap:[],diagnostics:{}};', error: 'AssertionError' },
 		{ name: 'a source map that is not an array', converter: `return {ok:false,source:undefined,fence:undefined,sourceMap:{},diagnostics:[${error('')}]};`, error: 'AssertionError' },
-		{ name: 'a rejection with no error, only a warning', converter: `return ${rejected(`[${error("severity:'warning'")}]`)};`, error: 'AssertionError' },
+		{ name: 'a rejection with only a warning', converter: `return ${rejected(`[${error("severity:'warning'")}]`)};`, error: 'AssertionError' },
 		{ name: 'an unknown diagnostic code', converter: `return ${rejected(`[${error("code:'bogus'")}]`)};`, error: 'AssertionError' },
 		{ name: 'an unknown severity beside an error', converter: `return ${rejected(`[${error('')},${error("severity:'info'")}]`)};`, error: 'AssertionError' },
 		{ name: 'an empty message', converter: `return ${rejected(`[${error("message:''")}]`)};`, error: 'AssertionError' },
@@ -94,9 +94,9 @@ describe('fuzz infrastructure', () => {
 	// Controls: inputs at the edge of the contract that a correct converter may return.
 	it.each([
 		{ name: 'a success core compiles, with a warning', converter: `return {...${accepted('')},diagnostics:[${error("severity:'warning'")}]};` },
-		{ name: 'two diagnostics at the same position', converter: `return ${rejected(`[${error('')},${error('')}]`)};` },
-		{ name: 'a span that ends one past the last unit of every input, CR, CRLF and emoji included', converter: atEnd('/\\r\\n|\\r|\\n/') }
-	])('passes a converter that returns $name, across every input mode', async ({ converter }) => {
+		{ name: 'two diagnostics at one position', converter: `return ${rejected(`[${error('')},${error('')}]`)};` },
+		{ name: "a span one past each input's end, CR, CRLF and emoji included", converter: atEnd('/\\r\\n|\\r|\\n/') }
+	])('passes a converter that returns $name', async ({ converter }) => {
 		const result = await fuzz(`export function convertCircuitikz(t){${converter}}`, ['--cases=200', '--seed=1']);
 		expect(result.output).toContain('PASS: 200 reproducible fuzz cases (400 conversions).');
 		expect(result.status).toBe(0);
