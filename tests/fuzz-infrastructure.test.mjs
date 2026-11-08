@@ -153,8 +153,8 @@ describe('fuzz infrastructure', () => {
 		const expected = ['%%%', '%%%%', '%%%%%', '%'.repeat(1_000_000), ...[2, 3].flatMap((n) => [
 			'{'.repeat(n), wrap('\\draw (0,0);'.repeat(n)), wrap('\\draw (0,0)' + ' -- (1,0)'.repeat(n - 1) + ';'), wrap('\\draw (0,0)' + ' to[R] (1,0)'.repeat(n) + ';')
 		])];
-		const { status, failure } = await fuzz(`import {writeFileSync} from 'node:fs';export function convertCircuitikz(t,o){globalThis.seen??=[];globalThis.seen.push([t,o]);if(globalThis.seen.length===24){writeFileSync('seen.json',JSON.stringify(globalThis.seen));throw new Error('stop');}return ${rejected(`[${error('')}]`)};}`, ['--cases=13', '--seed=1'], 'seen.json');
-		expect(status).toBe(1);
+		const { status, failure } = await fuzz(`import {writeFileSync} from 'node:fs';export function convertCircuitikz(t,o){globalThis.seen??=[];globalThis.seen.push([t,o]);writeFileSync('seen.json',JSON.stringify(globalThis.seen));return ${rejected(`[${error('')}]`)};}`, [`--cases=${expected.length}`, '--seed=1'], 'seen.json');
+		expect(status).toBe(0);
 		const seen = failure.filter((_, i) => i % 2 === 0);
 		expect(seen.map(([text]) => text)).toEqual(expected);
 		// Only the million-character input raises the source ceiling to fit it.
