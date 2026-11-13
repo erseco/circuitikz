@@ -30,6 +30,8 @@ Written for someone deciding whether to upgrade. Sections: `Fixed`, `Added`, `Re
   budget.
 - A fuzz contract (`bun run test:fuzz:contract`, run in CI and by `release:check`): 20,000 seeded
   inputs per run, each converted twice in an isolated worker with a 2-second deadline. Every result
-  must have the declared shape, keep its diagnostics in order and inside the input, repeat exactly,
-  and contain no `internal` diagnostic. A failure is minimized and saved as `fuzz-failure-<seed>.json`,
-  which CI keeps as an artifact.
+  must have the declared shape, keep its diagnostics and source-map spans in order and inside the
+  input, repeat exactly, and contain no `internal` diagnostic. A run passes only when its worker
+  reports every case done. A failure is saved as `fuzz-failure-<seed>.json` at once, then minimized
+  within a budget (`--minimize-attempts`, 2,000 by default, and two minutes), and CI keeps the file
+  as an artifact.
