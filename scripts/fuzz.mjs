@@ -6,9 +6,17 @@ import { buildNetlist, compileSchematic, diagnoseSchematic } from '@schemd/core'
 import { convertCircuitikz } from '../dist/index.js';
 import { LIMITS } from '../dist/limits.js';
 
+/** A span on one line of the input, in UTF-16 columns with an exclusive end. */
+function inside(lines, { line, column, endColumn }) {
+	assert.ok([line, column, endColumn].every(Number.isInteger));
+	assert.ok(line >= 1 && line <= lines.length);
+	assert.ok(column >= 1 && endColumn >= column && endColumn <= lines[line - 1].length + 1);
+}
+
 function check(input, options) {
-	const result = convertCircuitikz(input, options);
-	assert.deepEqual(result, convertCircuitikz(input, options), 'conversion is not deterministic');
+	// A detached copy, so a converter that mutates and returns the same object on the next call cannot hide a difference.
+	const result = structuredClone(convertCircuitikz(input, options));
+	assert.deepEqual(convertCircuitikz(input, options), result, 'conversion is not deterministic');
 	assert.equal(typeof result.ok, 'boolean');
 	assert.ok(Array.isArray(result.diagnostics));
 	assert.ok(Array.isArray(result.sourceMap));
@@ -22,10 +30,8 @@ function check(input, options) {
 		assert.ok(['error', 'warning'].includes(diagnostic.severity));
 		assert.equal(typeof diagnostic.message, 'string');
 		assert.ok(diagnostic.message.length > 0);
-		const { line, column, endColumn } = diagnostic;
-		assert.ok([line, column, endColumn].every(Number.isInteger));
-		assert.ok(line >= 1 && line <= lines.length);
-		assert.ok(column >= 1 && endColumn >= column && endColumn <= lines[line - 1].length + 1);
+		inside(lines, diagnostic);
+		const { line, column } = diagnostic;
 		assert.ok(line > previous[0] || line === previous[0] && column >= previous[1]);
 		previous = [line, column];
 	}
@@ -37,7 +43,13 @@ function check(input, options) {
 		assert.equal(typeof result.source, 'string');
 		assert.deepEqual(diagnoseSchematic(result.source, result.fence), []);
 		assert.ok(buildNetlist(compileSchematic(result.source, result.fence).document).nodes.length >= 0);
-		assert.equal(result.sourceMap.length, result.source.split('\n').filter((line) => line.trim() !== '').length);
+		// One CircuitikzMapping per non-blank emitted line, in order, each pointing inside the input (R-3.5).
+		const emitted = result.source.split('\n').flatMap((line, index) => line.trim() === '' ? [] : [index + 1]);
+		assert.deepEqual(result.sourceMap.map((mapping) => mapping?.schemdLine), emitted);
+		for (const mapping of result.sourceMap) {
+			assert.deepEqual(Object.keys(mapping).sort(), ['column', 'endColumn', 'line', 'schemdLine']);
+			inside(lines, mapping);
+		}
 	}
 }
 
@@ -97,21 +109,27 @@ if (!isMainThread) {
 		try { check(workerData.input, workerData.options); parentPort.postMessage({ failed: false }); }
 		catch (error) { parentPort.postMessage({ failed: true, error: String(error) }); }
 	} else {
+		let completed = 0;
 		for await (const { input, index, options } of generated(workerData.seed, workerData.cases)) {
 			parentPort.postMessage({ active: index, input, options });
-			try { check(input, options); }
+			try { check(input, options); completed += 1; }
 			catch (error) { parentPort.postMessage({ failed: true, input, index, options, error: String(error) }); break; }
 		}
+		// Only this message ends a passing run: an exit, even with code 0, is never success.
+		if (completed === workerData.cases) parentPort.postMessage({ failed: false, completed });
 	}
 } else {
-	function argument(name, fallback, maximum) {
+	function argument(name, fallback, maximum, minimum = 1) {
 		const raw = process.argv.find((v) => v.startsWith(`--${name}=`))?.slice(name.length + 3);
 		const value = raw === undefined ? fallback : Number(raw);
-		if (!Number.isInteger(value) || value < 1 || value > maximum) throw new TypeError(`--${name} must be an integer from 1 through ${maximum}`);
+		if (raw === '' || !Number.isInteger(value) || value < minimum || value > maximum) throw new TypeError(`--${name} must be an integer from ${minimum} through ${maximum}`);
 		return value;
 	}
 	const seed = argument('seed', 0x5c4e4d, 0xffffffff);
 	const cases = argument('cases', 20_000, 1_000_000);
+	// Minimization is bounded so CI keeps time to upload the reproducer: candidates and wall time both.
+	const attemptBudget = argument('minimize-attempts', 2000, 1_000_000, 0);
+	const MINIMIZE_MS = 120_000;
 	console.log(`Fuzz seed: ${seed}; cases: ${cases}`);
 
 	function isolated(data) {
@@ -137,29 +155,37 @@ if (!isMainThread) {
 				else finish(message);
 			});
 			worker.on('error', (error) => finish({ failed: true, ...active, error: String(error) }));
-			worker.on('exit', (code) => finish(code === 0 ? { failed: false } : { failed: true, ...active, error: `Worker exited ${code}` }));
+			worker.on('exit', (code) => finish({ failed: true, ...active, error: `Worker exited ${code} before reporting a result.` }));
 		});
 	}
 
 	const failure = await isolated({ mode: 'run', seed, cases });
-	if (failure.failed) {
+	if (failure.failed || failure.completed !== cases) {
+		const path = `fuzz-failure-${seed}.json`;
 		let minimal = failure.input ?? '';
+		let attempts = 0;
+		const save = (minimized) => writeFile(path, JSON.stringify({ seed, index: failure.index, error: failure.error, options: failure.options, minimized, attempts, original: failure.input, input: minimal }, null, 2) + '\n');
+		// The original is on disk before the first candidate runs, and every reduction is saved as it lands.
+		await save(false);
+		const deadline = Date.now() + MINIMIZE_MS;
+		let minimized = true;
 		/* Delta debugging, followed by single-character deletion: 1-minimal for
 		   the reproducible contract failure, always checked in a timed worker. */
-		for (let chunk = Math.max(1, Math.floor(minimal.length / 2)); chunk >= 1; chunk = Math.floor(chunk / 2)) {
+		search: for (let chunk = Math.max(1, Math.floor(minimal.length / 2)); chunk >= 1; chunk = Math.floor(chunk / 2)) {
 			let reduced;
 			do {
 				reduced = false;
 				for (let start = 0; start < minimal.length;) {
+					if (attempts >= attemptBudget || Date.now() >= deadline) { minimized = false; break search; }
+					attempts += 1;
 					const candidate = minimal.slice(0, start) + minimal.slice(start + chunk);
-					if ((await isolated({ mode: 'single', input: candidate, options: failure.options })).failed) { minimal = candidate; reduced = true; }
+					if ((await isolated({ mode: 'single', input: candidate, options: failure.options })).failed) { minimal = candidate; reduced = true; await save(false); }
 					else start += chunk;
 				}
 			} while (chunk === 1 && reduced);
 		}
-		const path = `fuzz-failure-${seed}.json`;
-		await writeFile(path, JSON.stringify({ seed, index: failure.index, error: failure.error, options: failure.options, original: failure.input, input: minimal }, null, 2) + '\n');
-		throw new Error(`Fuzz contract failed: ${failure.error}; minimized input saved to ${path}`);
+		await save(minimized);
+		throw new Error(`Fuzz contract failed: ${failure.error}; ${minimized ? 'minimized' : 'partly minimized (budget spent)'} input saved to ${path}`);
 	}
 	console.log(`PASS: ${cases} reproducible fuzz cases (${cases * 2} conversions).`);
 }

@@ -7,13 +7,15 @@ import { describe, expect, it } from 'vitest';
 const rejected = (diagnostics) => `{ok:false,source:undefined,fence:undefined,sourceMap:[],diagnostics:${diagnostics}}`;
 const error = (fields) => `{code:'syntax',message:'m',line:1,column:1,endColumn:1,severity:'error',${fields}}`;
 // A source core accepts, as M2 emits it: one component inside its fence.
+// Two components with a blank line between them: the source map skips it.
+const twoParts = `{ok:true,source:'capacitor:C1 "100" at (180, 80) #cyan\\n\\ncapacitor:C2 at (300, 80) #cyan\\n',fence:{bounds:{width:400,height:200},title:'T'},sourceMap:[{schemdLine:1,line:1,column:1,endColumn:1},{schemdLine:3,line:1,column:1,endColumn:1}],diagnostics:[]}`;
 const accepted = (fields) => `{ok:true,source:'capacitor:C1 "100" at (180, 80) #cyan\\n',fence:{bounds:{width:400,height:200},title:'T'},sourceMap:[{schemdLine:1,line:1,column:1,endColumn:1}],diagnostics:[],${fields}}`;
 // Reports at the very end of the input: the last line, one past its last UTF-16 unit.
 const atEnd = (split) => `const lines=t.split(${split});const line=lines.length;const column=lines[line-1].length+1;return ${rejected('[{code:\'syntax\',message:\'m\',line,column,endColumn:column,severity:\'error\'}]')};`;
 
 /** Runs the real fuzz script against a stand-in converter in a scratch package, so a converter
  * that breaks the contract can be shown to fail the gate. Nothing in src or dist changes. */
-async function fuzz(converter, args = ['--cases=1', '--seed=1'], output = 'fuzz-failure-1.json') {
+async function fuzz(converter, args = ['--cases=1', '--seed=1'], output = 'fuzz-failure-1.json', { kill } = {}) {
 	const directory = await mkdtemp(join(tmpdir(), 'circuitikz-fuzz-contract-'));
 	try {
 		for (const path of ['scripts', 'dist', 'tests/fixtures/conformance/one', 'tests/fixtures/rejections/two']) await mkdir(join(directory, path), { recursive: true });
@@ -24,8 +26,9 @@ async function fuzz(converter, args = ['--cases=1', '--seed=1'], output = 'fuzz-
 		await writeFile(join(directory, 'dist/limits.js'), 'export const LIMITS = {sourceLength:4,braceDepth:2,statements:2,pathElements:2,components:2};');
 		await writeFile(join(directory, 'tests/fixtures/conformance/one/input.tex'), '\\begin{circuitikz}\\end{circuitikz}');
 		await writeFile(join(directory, 'tests/fixtures/rejections/two/input.tex'), '\\begin{circuitikz}\\draw (0,0)\\end{circuitikz}');
-		const result = spawnSync(process.execPath, ['scripts/fuzz.mjs', ...args], { cwd: directory, encoding: 'utf8', timeout: 15_000 });
-		expect(result.error).toBeUndefined();
+		const result = spawnSync(process.execPath, ['scripts/fuzz.mjs', ...args], { cwd: directory, encoding: 'utf8', timeout: kill ?? 15_000 });
+		if (kill === undefined) expect(result.error).toBeUndefined();
+		else expect(result.error?.code).toBe('ETIMEDOUT');
 		const failure = await readFile(join(directory, output), 'utf8').then(JSON.parse, () => undefined);
 		return { status: result.status, output: result.stdout + result.stderr, failure };
 	} finally { await rm(directory, { force: true, recursive: true }); }
@@ -82,7 +85,26 @@ describe('fuzz infrastructure', () => {
 		{ name: 'a success that core rejects', converter: `return {...${accepted('')},source:'capacitor:C1 at (900, 80) #cyan\\n'};`, error: 'AssertionError' },
 		{ name: 'a success with no fence', converter: `return {...${accepted('')},fence:undefined};`, error: 'SchematicSyntaxError: Parser options must be an object.' },
 		{ name: 'a success whose source map misses a line', converter: `return {...${accepted('')},sourceMap:[]};`, error: 'AssertionError' },
-		{ name: 'a success with no source', converter: `return {...${accepted('')},source:undefined};`, error: 'AssertionError' }
+		{ name: 'a success with no source', converter: `return {...${accepted('')},source:undefined};`, error: 'AssertionError' },
+		// Each source-map entry is a CircuitikzMapping: four integer fields, the emitted line it maps, and a span inside the input (R-3.5).
+		...[
+			['a null source-map entry', 'null'],
+			['a source-map entry with a missing field', '{schemdLine:1,line:1,column:1}'],
+			['a source-map entry with an extra field', '{schemdLine:1,line:1,column:1,endColumn:1,extra:1}'],
+			['a source-map entry for a line the source lacks', '{schemdLine:2,line:1,column:1,endColumn:1}'],
+			['a source-map entry for line 0 of the source', '{schemdLine:0,line:1,column:1,endColumn:1}'],
+			['a source-map entry on a line the input lacks', '{schemdLine:1,line:2,column:1,endColumn:1}'],
+			['a source-map entry past the end of its line', '{schemdLine:1,line:1,column:9,endColumn:9}'],
+			['a source-map entry that ends before it starts', '{schemdLine:1,line:1,column:2,endColumn:1}'],
+			['a source-map entry with column 0', '{schemdLine:1,line:1,column:0,endColumn:1}'],
+			['a source-map entry with a fractional column', '{schemdLine:1,line:1,column:1.5,endColumn:2}'],
+			['a source-map entry with a column given as a string', "{schemdLine:1,line:1,column:'1',endColumn:1}"]
+		].map(([name, entry]) => ({ name, converter: `return {...${accepted('')},sourceMap:[${entry}]};`, error: 'AssertionError' })),
+		{ name: 'a source map that maps the blank line', converter: `return {...${twoParts},sourceMap:[{schemdLine:1,line:1,column:1,endColumn:1},{schemdLine:2,line:1,column:1,endColumn:1}]};`, error: 'AssertionError' },
+		{ name: 'a source map out of order', converter: `return {...${twoParts},sourceMap:[{schemdLine:3,line:1,column:1,endColumn:1},{schemdLine:1,line:1,column:1,endColumn:1}]};`, error: 'AssertionError' },
+		// The second call mutates and returns the object the first call returned, so comparing the two references proves nothing.
+		{ name: 'a reused result whose message changes on every call', converter: `globalThis.r??=${rejected(`[${error('')}]`)};globalThis.n=(globalThis.n??0)+1;globalThis.r.diagnostics[0].message='call '+globalThis.n;return globalThis.r;`, error: 'conversion is not deterministic' },
+		{ name: 'a reused diagnostics array that grows on every call', converter: `globalThis.d??=[];globalThis.d.push(${error('')});return {...${rejected('globalThis.d')}};`, error: 'conversion is not deterministic' }
 	])('fails the gate for $name', async ({ converter, error: expected }) => {
 		const { status, failure } = await fuzz(`export function convertCircuitikz(){${converter}}`);
 		expect(status).toBe(1);
@@ -95,7 +117,9 @@ describe('fuzz infrastructure', () => {
 	it.each([
 		{ name: 'a success core compiles, with a warning', converter: `return {...${accepted('')},diagnostics:[${error("severity:'warning'")}]};` },
 		{ name: 'two diagnostics at one position', converter: `return ${rejected(`[${error('')},${error('')}]`)};` },
-		{ name: "a span one past each input's end", converter: atEnd('/\\r\\n|\\r|\\n/') }
+		{ name: "a span one past each input's end", converter: atEnd('/\\r\\n|\\r|\\n/') },
+		{ name: 'a source map that skips a blank line', converter: `return ${twoParts};` },
+		{ name: 'the same result object, unchanged, on every call', converter: `return globalThis.r??=${rejected(`[${error('')}]`)};` }
 	])('passes a converter that returns $name', async ({ converter }) => {
 		const result = await fuzz(`export function convertCircuitikz(t){${converter}}`, ['--cases=200', '--seed=1']);
 		expect(result.output).toContain('PASS: 200 reproducible fuzz cases (400 conversions).');
@@ -141,10 +165,49 @@ describe('fuzz infrastructure', () => {
 		expect(failure?.index).toBeGreaterThan(0);
 	});
 
-	it('fails the gate when the converter ends its worker', async () => {
-		const { status, failure } = await fuzz('export function convertCircuitikz(){process.exit(3);}');
+	it.each([3, 0])('fails the gate when the converter ends its worker with code %i', async (code) => {
+		const { status, output, failure } = await fuzz(`export function convertCircuitikz(){process.exit(${code});}`);
 		expect(status).toBe(1);
-		expect(failure).toMatchObject({ index: 0, original: '%%%', input: '', error: 'Worker exited 3' });
+		expect(output).not.toContain('PASS');
+		expect(failure).toMatchObject({ index: 0, original: '%%%', input: '', error: `Worker exited ${code} before reporting a result.` });
+	});
+
+	it('fails the gate when the converter ends its worker cleanly after some cases', async () => {
+		const { status, output, failure } = await fuzz(`export function convertCircuitikz(t){if(t.length===5)process.exit(0);return ${rejected(`[${error('')}]`)};}`, ['--cases=40', '--seed=1']);
+		expect(status).toBe(1);
+		expect(output).not.toContain('PASS');
+		// The third input, five percent signs, was active when the worker left.
+		expect(failure).toMatchObject({ index: 2, original: '%%%%%', error: 'Worker exited 0 before reporting a result.' });
+	});
+
+	it('saves the failing input before minimizing, and stops at the attempt budget', async () => {
+		const converter = `export function convertCircuitikz(t){if(t.length===1000000)throw new Error("only at a million");return ${rejected(`[${error('')}]`)};}`;
+		const { status, output, failure } = await fuzz(converter, ['--cases=4', '--seed=1', '--minimize-attempts=6']);
+		expect(status).toBe(1);
+		expect(output).toContain('fuzz-failure-1.json');
+		expect(failure).toMatchObject({ index: 3, error: 'Error: only at a million', attempts: 6, minimized: false });
+		expect(failure.original).toHaveLength(1_000_000);
+		expect(failure.input).toHaveLength(1_000_000);
+	});
+
+	it('leaves the original failure on disk when the run is killed while minimizing', async () => {
+		const converter = `export function convertCircuitikz(t){if(t.length===1000000)throw new Error("only at a million");return ${rejected(`[${error('')}]`)};}`;
+		const { failure } = await fuzz(converter, ['--cases=4', '--seed=1'], 'fuzz-failure-1.json', { kill: 4000 });
+		expect(failure).toMatchObject({ seed: 1, index: 3, error: 'Error: only at a million', minimized: false });
+		expect(failure.original).toHaveLength(1_000_000);
+	}, 20_000);
+
+	it('keeps the original unreduced with a minimization budget of zero', async () => {
+		const { status, output, failure } = await fuzz('export function convertCircuitikz(){throw new Error("always");}', ['--cases=1', '--seed=1', '--minimize-attempts=0']);
+		expect(status).toBe(1);
+		expect(output).toContain('partly minimized (budget spent)');
+		expect(failure).toMatchObject({ attempts: 0, original: '%%%', input: '%%%', minimized: false });
+	});
+
+	it('checkpoints each reduction and marks a finished minimization', async () => {
+		const { failure } = await fuzz(`export function convertCircuitikz(t){if(t.includes("α"))throw new Error("alpha");return ${rejected(`[${error('')}]`)};}`, ['--cases=200', '--seed=1']);
+		expect(failure).toMatchObject({ input: 'α', minimized: true });
+		expect(failure.attempts).toBeGreaterThan(0);
 	});
 
 	it('checks the inputs at each ceiling and one past it before any random input', async () => {
@@ -173,10 +236,10 @@ describe('fuzz infrastructure', () => {
 		expect(result.status).toBe(0);
 	});
 
-	it.each(['--cases=0', '--cases=1000001', '--cases=1.5', '--cases=', '--cases=-1', '--seed=0', '--seed=x', '--seed=4294967296', '--seed=-1', '--seed=NaN'])('rejects the out-of-range argument %s before running', async (argument) => {
+	it.each(['--cases=0', '--cases=1000001', '--cases=1.5', '--cases=', '--cases=-1', '--seed=0', '--seed=x', '--seed=4294967296', '--seed=-1', '--seed=NaN', '--minimize-attempts=-1', '--minimize-attempts=1000001', '--minimize-attempts=x'])('rejects the out-of-range argument %s before running', async (argument) => {
 		const { status, output, failure } = await fuzz('export function convertCircuitikz(){throw new Error("never called");}', [argument]);
 		expect(status).toBe(1);
-		expect(output).toMatch(/--(cases|seed) must be an integer from 1 through \d+/);
+		expect(output).toMatch(/--(cases|seed|minimize-attempts) must be an integer from [01] through \d+/);
 		expect(failure).toBeUndefined();
 	});
 });
