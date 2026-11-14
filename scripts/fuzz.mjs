@@ -14,9 +14,11 @@ function inside(lines, { line, column, endColumn }) {
 }
 
 function check(input, options) {
-	// A detached copy, so a converter that mutates and returns the same object on the next call cannot hide a difference.
+	/* Both calls are compared as detached copies: the first is taken before the second call, so a
+	   converter that mutates and returns one object cannot hide a difference, and cloning both sides
+	   alike lets stable data with any prototype compare equal. */
 	const result = structuredClone(convertCircuitikz(input, options));
-	assert.deepEqual(convertCircuitikz(input, options), result, 'conversion is not deterministic');
+	assert.deepEqual(structuredClone(convertCircuitikz(input, options)), result, 'conversion is not deterministic');
 	assert.equal(typeof result.ok, 'boolean');
 	assert.ok(Array.isArray(result.diagnostics));
 	assert.ok(Array.isArray(result.sourceMap));
@@ -132,12 +134,12 @@ if (!isMainThread) {
 		if (raw === '' || !Number.isInteger(value) || value < minimum || value > maximum) throw new TypeError(`--${name} must be an integer from ${minimum} through ${maximum}`);
 		return value;
 	}
+	const replay = process.argv.find((v) => v.startsWith('--replay='))?.slice('--replay='.length);
 	const seed = argument('seed', 0x5c4e4d, 0xffffffff);
 	const cases = argument('cases', 20_000, 1_000_000);
 	// Minimization is bounded so CI keeps time to upload the reproducer: candidates and wall time both.
 	const attemptBudget = argument('minimize-attempts', 2000, 1_000_000, 0);
 	const MINIMIZE_MS = 120_000;
-	console.log(`Fuzz seed: ${seed}; cases: ${cases}`);
 
 	function isolated(data) {
 		return new Promise((resolve) => {
@@ -166,14 +168,37 @@ if (!isMainThread) {
 		});
 	}
 
+	// Each candidate runs alone in a fresh worker; a seeded prefix replays the run up to the failing index.
+	const alone = (input, options) => isolated({ mode: 'single', input, options });
+	const prefix = (record) => isolated({ mode: 'run', seed: record.seed, cases: record.index + 1 });
+
+	if (replay !== undefined) {
+		// Replays a saved artifact the way it was recorded to reproduce, and fails while it still does.
+		const record = JSON.parse(await readFile(replay, 'utf8'));
+		const outcome = record.reproduces === 'standalone' ? await alone(record.input, record.options)
+			: await alone(record.input, record.options).then((single) => single.failed ? single : prefix(record));
+		if (outcome.failed) throw new Error(`Replay reproduces the failure: ${outcome.error}`);
+		console.log(`Replay passes: ${replay} no longer fails.`);
+		process.exit(0);
+	}
+
+	console.log(`Fuzz seed: ${seed}; cases: ${cases}`);
 	const failure = await isolated({ mode: 'run', seed, cases });
 	if (failure.failed || failure.completed !== cases) {
 		const path = `fuzz-failure-${seed}.json`;
 		let minimal = failure.input ?? '';
 		let attempts = 0;
-		const save = (minimized) => writeFile(path, JSON.stringify({ seed, index: failure.index, error: failure.error, options: failure.options, minimized, attempts, original: failure.input, input: minimal }, null, 2) + '\n');
+		let reproduces = 'unchecked';
+		const save = (minimized) => writeFile(path, JSON.stringify({ seed, index: failure.index, error: failure.error, options: failure.options, reproduces, minimized, attempts, original: failure.input, input: minimal }, null, 2) + '\n');
 		// The original is on disk before the first candidate runs, and every reduction is saved as it lands.
 		await save(false);
+		// Shrinking runs candidates alone, so it only starts once the original fails alone too.
+		reproduces = (await alone(failure.input, failure.options)).failed ? 'standalone'
+			: (await prefix({ seed, index: failure.index })).failed ? 'with-prefix' : 'no';
+		if (reproduces !== 'standalone') {
+			await save(false);
+			throw new Error(`Fuzz contract failed: ${failure.error}; ${reproduces === 'with-prefix' ? `the input fails only after the earlier inputs of its seed; replay with --seed=${seed} --cases=${failure.index + 1}` : 'the failure did not reproduce in a fresh worker or after its seeded prefix'}. Saved unminimized to ${path}`);
+		}
 		const deadline = Date.now() + MINIMIZE_MS;
 		let minimized = true;
 		/* Delta debugging, followed by single-character deletion: 1-minimal for
