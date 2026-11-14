@@ -15,7 +15,7 @@ const atEnd = (split) => `const lines=t.split(${split});const line=lines.length;
 
 /** Runs the real fuzz script against a stand-in converter in a scratch package, so a converter
  * that breaks the contract can be shown to fail the gate. Nothing in src or dist changes. */
-async function fuzz(converter, args = ['--cases=1', '--seed=1'], output = 'fuzz-failure-1.json', { kill } = {}) {
+async function fuzz(converter, args = ['--cases=1', '--seed=1'], output = 'fuzz-failure-1.json', { kill, replay } = {}) {
 	const directory = await mkdtemp(join(tmpdir(), 'circuitikz-fuzz-contract-'));
 	try {
 		for (const path of ['scripts', 'dist', 'tests/fixtures/conformance/one', 'tests/fixtures/rejections/two']) await mkdir(join(directory, path), { recursive: true });
@@ -30,7 +30,12 @@ async function fuzz(converter, args = ['--cases=1', '--seed=1'], output = 'fuzz-
 		if (kill === undefined) expect(result.error).toBeUndefined();
 		else expect(result.error?.code).toBe('ETIMEDOUT');
 		const failure = await readFile(join(directory, output), 'utf8').then(JSON.parse, () => undefined);
-		return { status: result.status, output: result.stdout + result.stderr, failure };
+		if (replay === undefined) return { status: result.status, output: result.stdout + result.stderr, failure };
+		// Replays the written artifact in a fresh process, against the same converter or a replacement.
+		if (replay !== true) await writeFile(join(directory, 'dist/index.js'), replay);
+		const again = spawnSync(process.execPath, ['scripts/fuzz.mjs', `--replay=${output}`], { cwd: directory, encoding: 'utf8', timeout: 15_000 });
+		expect(again.error).toBeUndefined();
+		return { status: result.status, output: result.stdout + result.stderr, failure, replayed: { status: again.status, output: again.stdout + again.stderr } };
 	} finally { await rm(directory, { force: true, recursive: true }); }
 }
 
@@ -119,6 +124,8 @@ describe('fuzz infrastructure', () => {
 		{ name: 'two diagnostics at one position', converter: `return ${rejected(`[${error('')},${error('')}]`)};` },
 		{ name: "a span one past each input's end", converter: atEnd('/\\r\\n|\\r|\\n/') },
 		{ name: 'a source map that skips a blank line', converter: `return ${twoParts};` },
+		{ name: 'a result with a null prototype', converter: `return Object.assign(Object.create(null),${rejected(`[${error('')}]`)});` },
+		{ name: 'a diagnostic with a null prototype', converter: `return ${rejected(`[Object.assign(Object.create(null),${error('')})]`)};` },
 		{ name: 'the same result object, unchanged, on every call', converter: `return globalThis.r??=${rejected(`[${error('')}]`)};` }
 	])('passes a converter that returns $name', async ({ converter }) => {
 		const result = await fuzz(`export function convertCircuitikz(t){${converter}}`, ['--cases=200', '--seed=1']);
@@ -197,6 +204,39 @@ describe('fuzz infrastructure', () => {
 		expect(failure.original).toHaveLength(1_000_000);
 	}, 20_000);
 
+	it('replays a minimized artifact: it still fails against the broken converter and passes once fixed', async () => {
+		const broken = 'export function convertCircuitikz(){throw new Error("controlled failure");}';
+		const fixed = `export function convertCircuitikz(){return ${rejected(`[${error('')}]`)};}`;
+		const still = await fuzz(broken, undefined, undefined, { replay: true });
+		expect(still.failure).toMatchObject({ reproduces: 'standalone', minimized: true, input: '' });
+		expect(still.replayed.status).toBe(1);
+		expect(still.replayed.output).toContain('Replay reproduces the failure: Error: controlled failure');
+		const repaired = await fuzz(broken, undefined, undefined, { replay: fixed });
+		expect(repaired.replayed.status).toBe(0);
+		expect(repaired.replayed.output).toContain('Replay passes');
+	});
+
+	it('keeps a failure that needs earlier inputs unminimized, and replays it with its seeded prefix', async () => {
+		// '%%%%' right after '%%%' answers differently from its second call; alone, or after itself, it never does.
+		const converter = `export function convertCircuitikz(t){const message=t==='%%%%'&&globalThis.last==='%%%'?'changed':'stable';globalThis.last=t;return ${rejected(`[${error('message')}]`)};}`;
+		const { status, output, failure, replayed } = await fuzz(converter, ['--cases=40', '--seed=1'], undefined, { replay: true });
+		expect(status).toBe(1);
+		expect(output).toContain('only after the earlier inputs of its seed');
+		expect(failure).toMatchObject({ index: 1, original: '%%%%', input: '%%%%', reproduces: 'with-prefix', minimized: false, attempts: 0 });
+		expect(replayed.status).toBe(1);
+		expect(replayed.output).toContain('Replay reproduces the failure');
+	});
+
+	it('records a failure it cannot reproduce at all, without claiming a minimized input', async () => {
+		// Fails once per scratch package: the first call ever leaves a marker, so no replay fails again.
+		const converter = `import {existsSync,writeFileSync} from 'node:fs';export function convertCircuitikz(){if(!existsSync('once')){writeFileSync('once','');throw new Error("first call only");}return ${rejected(`[${error('')}]`)};}`;
+		const { status, output, failure, replayed } = await fuzz(converter, undefined, undefined, { replay: true });
+		expect(status).toBe(1);
+		expect(output).toContain('did not reproduce');
+		expect(failure).toMatchObject({ index: 0, original: '%%%', input: '%%%', reproduces: 'no', minimized: false, attempts: 0 });
+		expect(replayed.status).toBe(0);
+	});
+
 	it('keeps the original unreduced with a minimization budget of zero', async () => {
 		const { status, output, failure } = await fuzz('export function convertCircuitikz(){throw new Error("always");}', ['--cases=1', '--seed=1', '--minimize-attempts=0']);
 		expect(status).toBe(1);
@@ -206,7 +246,7 @@ describe('fuzz infrastructure', () => {
 
 	it('checkpoints each reduction and marks a finished minimization', async () => {
 		const { failure } = await fuzz(`export function convertCircuitikz(t){if(t.includes("α"))throw new Error("alpha");return ${rejected(`[${error('')}]`)};}`, ['--cases=200', '--seed=1']);
-		expect(failure).toMatchObject({ input: 'α', minimized: true });
+		expect(failure).toMatchObject({ input: 'α', minimized: true, reproduces: 'standalone' });
 		expect(failure.attempts).toBeGreaterThan(0);
 	});
 
