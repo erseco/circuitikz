@@ -23,9 +23,11 @@ const BUDGETS = [
 		/* M1 adds a bounded scanner, span-aware parser, exact coordinate resolver,
 		   diagnostics and host validation. M0 measured 533 B gzip / 455 B brotli;
 		   M1 measured 4406 B gzip / 3942 B brotli after front-end hardening.
-		   Keep a 5 KiB gate on both axes, below R-8.5.3's 12 KiB release ceiling. */
-		maxGzipBytes: 5 * 1024,
-		maxBrotliBytes: 5 * 1024
+		   M2 adds graph construction, component/label semantics, emission, geometry
+		   preflight and independent verification: 8615 B gzip / 7762 B brotli.
+		   Keep a 9 KiB gate below R-8.5.3's unchanged 12 KiB release ceiling. */
+		maxGzipBytes: 9 * 1024,
+		maxBrotliBytes: 9 * 1024
 	}
 ];
 

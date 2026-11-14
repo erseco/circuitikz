@@ -70,7 +70,8 @@ function syntaxOffenders(source: string): string[] {
 	for (let index = 0; index < tokens.length; index += 1) {
 		const token = tokens[index]!;
 		if (token.kind === ts.SyntaxKind.AnyKeyword) found.push('explicit any');
-		if (token.kind === ts.SyntaxKind.Identifier && forbidden.has(token.value)) found.push(`host or dynamic global ${token.value}`);
+		if (token.kind === ts.SyntaxKind.Identifier && forbidden.has(token.value)
+			&& tokens[index - 1]?.value !== '.' && tokens[index - 1]?.value !== '?.') found.push(`host or dynamic global ${token.value}`);
 		if (token.kind === ts.SyntaxKind.ImportKeyword && tokens[index + 1]?.kind === ts.SyntaxKind.OpenParenToken) found.push('dynamic import');
 		if (token.kind === ts.SyntaxKind.StringLiteral && ['from', 'import'].includes(tokens[index - 1]?.value ?? '')) {
 			const value = token.value;
@@ -109,6 +110,7 @@ describe('source policy', () => {
 		for (const name of ['window', 'document', 'process', 'console', 'eval', 'Function', 'Date', 'RegExp']) {
 			expect(syntaxOffenders(`${name}["x"];`)).toContain(`host or dynamic global ${name}`);
 		}
+		expect(syntaxOffenders('value.document; value?.window;')).toEqual([]);
 		expect(syntaxOffenders('import type { SchematicFence } from "@schemd/core"; export * from "./a.js"; Math.floor(1);')).toEqual([]);
 	});
 

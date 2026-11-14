@@ -1,0 +1,10 @@
+[
+  {
+    "code": "geometry",
+    "message": "Component R1 or its label exceeds the fixed canvas; shorten the label or enlarge the circuit geometry.",
+    "line": 2,
+    "column": 13,
+    "endColumn": 119,
+    "severity": "error"
+  }
+]
