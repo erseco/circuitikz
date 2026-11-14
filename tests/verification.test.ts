@@ -28,6 +28,8 @@ vi.mock('@schemd/core', async (original) => {
 			if (hook.mode === 'orientation' && 'orientation' in part) part.orientation = 'left';
 			if (hook.mode === 'orientation-missing' && 'orientation' in part) delete part.orientation;
 			if (hook.mode === 'orientation-undefined' && part.kind === 'resistor') Object.defineProperty(part, 'orientation', { value: undefined });
+			if (hook.mode === 'diode-style' && 'diodeType' in part) part.diodeType = 'photodiode';
+			if (hook.mode === 'ground-style' && 'groundStyle' in part) part.groundStyle = 'signal';
 			if (hook.mode === 'variant' && 'variant' in part) part.variant = 'voltage-dc';
 			if (hook.mode === 'variant-missing' && 'variant' in part) delete part.variant;
 			if (hook.mode === 'inventory') return { ...result, document: { ...result.document, components: [] } };
@@ -73,4 +75,9 @@ it.each(['j-identity', 'j-kind', 'j-label', 'j-color', 'j-x', 'j-y'])('independe
 	hook.mode = mode;
 	const result = convertCircuitikz('\\begin{circuitikz}\n\\draw (0,0) to[R] (2,0);\\draw (2,0) to[C] (4,0);\\draw (2,0) to[L] (2,2);\n\\end{circuitikz}');
 	expect(result.diagnostics[0]?.message).toBe('Conversion verification failed: Junction J1 changed identity, kind, label, color or position; please report this with the input.');
+});
+
+it.each([['diode-style', '(0,0) to[D] (2,0)', 'D1'], ['ground-style', '(0,0) node[ground]{}', 'G1']])('independently rejects %s corruption', (mode, body, id) => {
+	hook.mode = mode;
+	expect(convertCircuitikz(input(body)).diagnostics[0]?.message).toBe(`Conversion verification failed: Component ${id} changed variant; please report this with the input.`);
 });

@@ -23,7 +23,7 @@ async function fuzz(converter, args = ['--cases=1', '--seed=1'], output = 'fuzz-
 		await cp('scripts/fuzz.mjs', join(directory, 'scripts/fuzz.mjs'));
 		await writeFile(join(directory, 'package.json'), '{"type":"module"}');
 		await writeFile(join(directory, 'dist/index.js'), converter);
-		await writeFile(join(directory, 'dist/limits.js'), 'export const LIMITS = {sourceLength:4,braceDepth:2,statements:2,pathElements:2,components:2};');
+		await writeFile(join(directory, 'dist/limits.js'), 'export const LIMITS = {sourceLength:4,braceDepth:2,junctions:2,statements:2,pathElements:2,components:2};');
 		await writeFile(join(directory, 'tests/fixtures/conformance/one/input.tex'), '\\begin{circuitikz}\\end{circuitikz}');
 		await writeFile(join(directory, 'tests/fixtures/rejections/two/input.tex'), '\\begin{circuitikz}\\draw (0,0)\\end{circuitikz}');
 		const result = spawnSync(process.execPath, ['scripts/fuzz.mjs', ...args], { cwd: directory, encoding: 'utf8', timeout: kill ?? 15_000 });
@@ -251,10 +251,12 @@ describe('fuzz infrastructure', () => {
 	});
 
 	it('checks the inputs at each ceiling and one past it before any random input', async () => {
-		// The stand-in limits are 4 characters, 2 braces, 2 statements, 2 path elements and 2 components.
+		// The stand-in limits are 4 characters, 2 braces, 2 junctions, 2 statements, 2 path elements and 2 components.
 		const wrap = (text) => `\\begin{circuitikz}\n${text}\n\\end{circuitikz}`;
+		const junctions = (n) => Array.from({ length: n }, (_, i) => `\\draw (${i * 2},0) -- (${i === 0 ? '-0.10' : `${i * 2 - 1}.90`},0) (${i * 2},0) -- (${i * 2}.10,0) (${i * 2},0) -- (${i * 2},0.10);`).join('\n');
+		const grounds = (n) => Array.from({ length: n }, (_, i) => `\\draw (${i * 2},0) node[ground]{};`).join('\n');
 		const expected = ['%%%', '%%%%', '%%%%%', '%'.repeat(1_000_000), ...[2, 3].flatMap((n) => [
-			'{'.repeat(n), wrap('\\draw (0,0);'.repeat(n)), wrap('\\draw (0,0)' + ' -- (1,0)'.repeat(n - 1) + ';'), wrap('\\draw (0,0)' + ' to[R] (1,0)'.repeat(n) + ';')
+			'{'.repeat(n), wrap(junctions(n)), wrap(grounds(n)), wrap('\\draw (0,0);'.repeat(n)), wrap('\\draw (0,0)' + ' -- (1,0)'.repeat(n - 1) + ';'), wrap('\\draw (0,0)' + ' to[R] (1,0)'.repeat(n) + ';')
 		])];
 		const { status, failure } = await fuzz(`import {writeFileSync} from 'node:fs';export function convertCircuitikz(t,o){globalThis.seen??=[];globalThis.seen.push([t,o]);writeFileSync('seen.json',JSON.stringify(globalThis.seen));return ${rejected(`[${error('')}]`)};}`, [`--cases=${expected.length}`, '--seed=1'], 'seen.json');
 		expect(status).toBe(0);
