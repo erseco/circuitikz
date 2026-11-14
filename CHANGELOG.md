@@ -32,6 +32,8 @@ Written for someone deciding whether to upgrade. Sections: `Fixed`, `Added`, `Re
   inputs per run, each converted twice in an isolated worker with a 2-second deadline. Every result
   must have the declared shape, keep its diagnostics and source-map spans in order and inside the
   input, repeat exactly, and contain no `internal` diagnostic. A run passes only when its worker
-  reports every case done. A failure is saved as `fuzz-failure-<seed>.json` at once, then minimized
-  within a budget (`--minimize-attempts`, 2,000 by default, and two minutes), and CI keeps the file
+  reports every case done. A failure is saved as `fuzz-failure-<seed>.json` at once. It is minimized
+  within a budget (`--minimize-attempts`, 2,000 by default, and two minutes) only when it fails alone
+  in a fresh worker. One that needs the earlier inputs of its seed is kept whole and marked
+  `with-prefix`. `--replay=<file>` reruns a saved failure the way it reproduces, and CI keeps the file
   as an artifact.
