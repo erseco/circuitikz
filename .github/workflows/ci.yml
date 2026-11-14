@@ -6,7 +6,6 @@ on:
     tags:
       - "v*"
   pull_request:
-    branches: [main]
 
 permissions:
   contents: read
@@ -29,7 +28,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
-          bun-version: 1.4.3
+          bun-version-file: package.json
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ matrix.node }}
@@ -57,7 +56,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
-          bun-version: 1.4.3
+          bun-version-file: package.json
 
       - name: Setup supported Node.js runtime
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -82,7 +81,16 @@ jobs:
       - name: Kill every mutant
         run: bun run test:mutation
 
-      # M1 adds `bun run test:fuzz:contract` here (REQUIREMENTS.md R-8.3).
+      - name: Run 20000 reproducible fuzz cases
+        run: bun run test:fuzz:contract
+
+      - name: Preserve minimized fuzz failures
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: fuzz-failures
+          path: fuzz-failure-*.json
+          if-no-files-found: ignore
 
       - name: Build package
         run: bun run build
@@ -93,10 +101,8 @@ jobs:
       - name: Inspect package contents
         run: npm pack --dry-run
 
-      # Tests import from src; this is the only step that proves the built
-      # files load under Node.js the way a host will load them (R-8.6.2).
-      - name: Import the built package
-        run: node --input-type=module -e "const m = await import('./dist/index.js'); if (typeof m.connectivityOf !== 'function') throw new Error('dist/index.js is missing connectivityOf');"
+      - name: Exercise built ESM and browser-worker bundle
+        run: bun run test:smoke
 
       - name: Verify release commit belongs to main
         if: startsWith(github.ref, 'refs/tags/v')
