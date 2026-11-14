@@ -141,7 +141,7 @@ bun run test:smoke
 ```
 
 Coverage gates remain 100% per source file on all four axes. CI runs at least 20000 seeded cases,
-saves each failure at once and minimizes it within a budget, checks the built package under Node 24, and runs on stacked PR bases.
+saves each failure at once, minimizes it within a budget when it fails alone (`--replay` reruns it), checks the built package under Node 24, and runs on stacked PR bases.
 The browser-target bundle smoke runs in a VM with standard TextEncoder/TextDecoder Web APIs and
 without Node/DOM globals. It is not a real-browser integration run. No releases or tags are created.
 
