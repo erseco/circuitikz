@@ -150,8 +150,11 @@ npm pack --dry-run
 Fuzzing includes random characters, grammar tokens, mutated conformance inputs, valid option
 variations and M1 resource boundaries. Each case runs twice in an isolated worker with a deadline;
 a run passes only when the worker reports every case done. A failure writes `fuzz-failure-<seed>.json`
-at once, with the original input and options, and rewrites it as each deletion shrinks the input,
-within `--minimize-attempts` candidates (2,000 by default) and two minutes. CI uploads failures. Override the seed for a local run with
+at once, with the original input and options. When the input fails alone in a fresh worker, the file
+is rewritten as each deletion shrinks it, within `--minimize-attempts` candidates (2,000 by default)
+and two minutes; one that fails only after the earlier inputs of its seed is kept whole and marked
+`with-prefix`. `node scripts/fuzz.mjs --replay=fuzz-failure-<seed>.json` reruns a saved failure.
+CI uploads failures. Override the seed for a local run with
 `node scripts/fuzz.mjs --seed=123 --cases=20000` after building.
 
 The browser-target bundle smoke test executes without Node or DOM globals in a VM; it is not a
