@@ -18,6 +18,15 @@ R1.out -> R2.in #amber [ortho]
 R2.out -> B1.positive #amber [ortho]`;
 
 describe('connectivityOf', () => {
+	it('exposes core 1.1 open-terminal behavior for the M2 design review', () => {
+		const netlist = netlistOf('resistor:R1 "R1" at (100, 100) #amber');
+		expect(netlist.nodes.map(({ id, ports }) => ({ id, ports }))).toEqual([{ id: 'R1', ports: ['in', 'out'] }]);
+		expect(netlist.nets).toEqual([]);
+		expect(connectivityOf(netlist)).toEqual([]);
+		/* R-5.1.3's intended graph must instead contain both singleton nets.
+		   Keep the public oracle unchanged until this conflict is reviewed. */
+		expect(connectivityDifference([['R1.in'], ['R1.out']], connectivityOf(netlist))).toBe('R1.in should be connected to R1.in, but is not connected at all.');
+	});
 	it('lists each net as sorted ID.port keys, nets sorted', () => {
 		expect(connectivityOf(netlistOf(series))).toEqual([
 			['B1.negative', 'R1.in'],

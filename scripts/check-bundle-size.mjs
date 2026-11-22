@@ -20,9 +20,10 @@ const BUDGETS = [
 		label: 'Package bundle (every public export, @schemd/core external)',
 		module: '../src/index.ts',
 		entry: (path) => `import * as converter from ${JSON.stringify(path)};globalThis.schemdCircuitikz=converter;`,
-		/* M1's budget from R-8.5.4. 0.0.0 measured 538 B gzip / 455 B brotli. The
-		   parser, coordinate literals, host options and convertCircuitikz measured
-		   4186 B gzip / 3716 B brotli; with the coordinate resolver, 4705 B / 4206 B. */
+		/* M1 adds a bounded scanner, span-aware parser, exact coordinate resolver,
+		   diagnostics and host validation. M0 measured 533 B gzip / 455 B brotli;
+		   M1 measured 4406 B gzip / 3942 B brotli after front-end hardening.
+		   Keep a 5 KiB gate on both axes, below R-8.5.3's 12 KiB release ceiling. */
 		maxGzipBytes: 5 * 1024,
 		maxBrotliBytes: 5 * 1024
 	}
