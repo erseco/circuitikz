@@ -44,7 +44,7 @@
     "test:coverage": "vitest run --coverage",
     "test:mutation": "node scripts/mutation.mjs",
     "test:fuzz:contract": "bun run build && node scripts/fuzz.mjs --cases=20000",
-    "test:smoke": "node scripts/smoke.mjs"
+    "test:smoke": "bun run build && node scripts/smoke.mjs"
   },
   "peerDependencies": {
     "@schemd/core": "^1.3.1"
