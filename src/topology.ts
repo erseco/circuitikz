@@ -17,11 +17,18 @@ import type { CircuitConnectivity } from './types.js';
 /** Canonical connectivity of a schemd netlist, junctions left out. */
 export function connectivityOf(netlist: SchematicNetlist): CircuitConnectivity {
 	const junctions = new Set(netlist.nodes.filter((node) => node.kind === 'junction').map((node) => node.id));
-	return canonical(
-		netlist.nets.map((net) =>
-			net.terminals.filter((terminal) => !junctions.has(terminal.componentId)).map((terminal) => `${terminal.componentId}.${terminal.port}`)
-		)
+	const nets = netlist.nets.map((net) =>
+		net.terminals.filter((terminal) => !junctions.has(terminal.componentId)).map((terminal) => `${terminal.componentId}.${terminal.port}`)
 	);
+	const present = new Set(nets.flat());
+	for (const node of netlist.nodes) {
+		if (junctions.has(node.id)) continue;
+		for (const port of node.ports) {
+			const terminal = `${node.id}.${port}`;
+			if (!present.has(terminal)) nets.push([terminal]);
+		}
+	}
+	return canonical(nets);
 }
 
 /**

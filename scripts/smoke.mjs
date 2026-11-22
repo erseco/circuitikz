@@ -10,12 +10,11 @@ assert.ok(Number(process.versions.node.split('.')[0]) >= 24, 'Use supported Node
 assert.deepEqual(Object.keys(converter).sort(), ['canonical', 'connectivityDifference', 'connectivityOf', 'convertCircuitikz']);
 const input = await readFile(new URL('../tests/fixtures/conformance/series-battery/input.tex', import.meta.url), 'utf8');
 const expected = converter.convertCircuitikz(input);
-assert.equal(expected.ok, false);
-assert.equal(expected.source, undefined);
-assert.deepEqual(expected.sourceMap, []);
-assert.equal(expected.diagnostics[0].message, 'Conversion is not implemented yet; this milestone validates the supported input syntax only.');
+assert.equal(expected.ok, true);
+assert.deepEqual(expected.diagnostics, []);
 const source = await readFile(new URL('../tests/fixtures/conformance/series-battery/expected.schemd', import.meta.url), 'utf8');
 const meta = JSON.parse(await readFile(new URL('../tests/fixtures/conformance/series-battery/meta.json', import.meta.url), 'utf8'));
+assert.equal(expected.source, source);
 assert.equal(converter.connectivityDifference(meta.connectivity, converter.connectivityOf(buildNetlist(compileSchematic(source, parseSchematicFence(meta.fence)).document))), undefined);
 
 async function modules(directory, prefix = '') {
@@ -41,7 +40,7 @@ const result = await build({
 const outputs = Array.isArray(result) ? result.flatMap((r) => r.output) : result.output;
 const chunks = outputs.filter((o) => o.type === 'chunk');
 assert.equal(chunks.length, 1);
-const context = Object.create(null);
+const context = Object.assign(Object.create(null), { TextEncoder, TextDecoder });
 runInNewContext(`${chunks[0].code}\nresult = Circuitikz.convertCircuitikz(${JSON.stringify(input)});`, context, { timeout: 2000 });
 assert.deepEqual(JSON.parse(JSON.stringify(context.result)), JSON.parse(JSON.stringify(expected)));
 assert.equal(context.process, undefined);
