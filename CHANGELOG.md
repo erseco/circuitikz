@@ -41,3 +41,11 @@ Written for someone deciding whether to upgrade. Sections: `Fixed`, `Added`, `Re
   `--replay=<file>` reruns a saved failure the way it reproduces, says when it fails differently, and
   refuses a `with-prefix` replay once the fixtures or limits change. Unknown arguments are rejected,
   and CI keeps the file as an artifact.
+- A smoke test of the built package (`bun run test:smoke`, run in CI and by `release:check`, R-8.6.2).
+  Every `src` module, nested ones included, must have non-empty built code and declarations. The
+  built entry must load in Node.js 24+, export exactly the public API, answer a supported circuit with
+  the pending diagnostic, and read core's netlist of the expected document as the TeX wires it. The
+  entry is then bundled as one browser script and run in a fresh V8 context with no `process`,
+  `require`, `window` or `document`, and must answer as Node.js did (the browser half of R-2.2.2). An
+  import of a Node.js module fails the bundle instead of becoming an empty stand-in. It replaces the
+  one-line CI import of `dist/index.js`.
