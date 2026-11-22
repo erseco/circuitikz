@@ -546,7 +546,7 @@ in `scripts/check-bundle-size.mjs` saying what was added and how many bytes it m
 | --- | --- | --- |
 | M1 | 5 KiB | 5 KiB |
 | M2 | 9 KiB | 9 KiB |
-| M3 | 9.5 KiB | 9 KiB |
+| M3 | 9.75 KiB | 9 KiB |
 
 ### 8.6 Packaging and runtime
 

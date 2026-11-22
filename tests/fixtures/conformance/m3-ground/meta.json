@@ -1,0 +1,10 @@
+{
+  "origin": "CircuiTikZ 226cd409d8b7625a42d0a084eef085e4e56f86d6 tex/pgfcircbipoles.tex, pgfcircmonopoles.tex; REQUIREMENTS.md M3",
+  "note": "Three earth bars, unary in port, no synthetic second terminal.",
+  "fence": "schemd bounds=\"160x160\" title=\"Converted CircuiTikZ circuit\"",
+  "connectivity": [
+    [
+      "G1.in"
+    ]
+  ]
+}

@@ -1,0 +1,10 @@
+[
+  {
+    "code": "geometry",
+    "message": "Components G1 and J1 overlap at the required scale; increase their separation.",
+    "line": 2,
+    "column": 19,
+    "endColumn": 24,
+    "severity": "error"
+  }
+]

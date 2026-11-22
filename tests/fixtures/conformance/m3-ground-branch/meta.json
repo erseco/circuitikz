@@ -1,0 +1,18 @@
+{
+  "origin": "CircuiTikZ 226cd409d8b7625a42d0a084eef085e4e56f86d6 tex/pgfcircbipoles.tex, pgfcircmonopoles.tex; REQUIREMENTS.md M3",
+  "note": "Ground on a wire endpoint separated from the mandatory degree-three junction.",
+  "fence": "schemd bounds=\"560x360\" title=\"Converted CircuiTikZ circuit\"",
+  "connectivity": [
+    [
+      "R1.in"
+    ],
+    [
+      "R1.out",
+      "C1.in",
+      "G1.in"
+    ],
+    [
+      "C1.out"
+    ]
+  ]
+}

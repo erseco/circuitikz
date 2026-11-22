@@ -1,0 +1,18 @@
+[
+  {
+    "code": "unsupported",
+    "message": "ncs is a normally closed switch, which @schemd/core cannot draw yet, and drawing it open would misstate the circuit; use nos or ospst only if the contact is meant to be open.",
+    "line": 2,
+    "column": 16,
+    "endColumn": 19,
+    "severity": "error"
+  },
+  {
+    "code": "unsupported",
+    "message": "cspst is a normally closed switch, which @schemd/core cannot draw yet, and drawing it open would misstate the circuit; use nos or ospst only if the contact is meant to be open.",
+    "line": 3,
+    "column": 17,
+    "endColumn": 22,
+    "severity": "error"
+  }
+]

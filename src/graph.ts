@@ -86,14 +86,14 @@ export function buildCircuit(segments: readonly Segment[], span: Span, diagnosti
 	for (const [index, segment] of segments.entries()) {
 		const from = vertex(segment.from, segment.fromSpan), to = vertex(segment.to, segment.toSpan);
 		if (from === to && (segment.spec === undefined || segment.spec.kind === 'wire')) continue;
-		vertices[from]!.degree += 1; vertices[to]!.degree += 1;
+		vertices[from]!.degree += 1; if (segment.spec?.kind !== 'ground') vertices[to]!.degree += 1;
 		if (segment.spec === undefined || segment.spec.kind === 'wire') {
 			if (nets.join(from, to)) links.push({ from, to, order: index * 2, wire: true, span: segment.span });
 			continue;
 		}
 		const spec = segment.spec;
 		const dx = segment.to.x - segment.from.x, dy = segment.to.y - segment.from.y;
-		if (dx !== 0 && dy !== 0 || Math.abs(dx) + Math.abs(dy) < 84) {
+		if (spec.kind !== 'ground' && (dx !== 0 && dy !== 0 || Math.abs(dx) + Math.abs(dy) < 84)) {
 			componentGeometry(diagnostics, `(${segment.from.x},${segment.from.y})`, `(${segment.to.x},${segment.to.y})`,
 				dx !== 0 && dy !== 0 ? 'is diagonal' : dx === 0 && dy === 0 ? 'has zero length' : 'is too short', segment.span);
 		}
@@ -126,7 +126,7 @@ export function buildCircuit(segments: readonly Segment[], span: Span, diagnosti
 	const expected = new Map<number, string[]>();
 	let extra = vertices.length;
 	for (const [index, part] of partAt) {
-		for (const [at, port, start] of [[part.from, part.first, true], [part.to, part.last, false]] as const) {
+		for (const [at, port, start] of (part.spec.kind === 'ground' ? [[part.from, part.first, true] as const] : [[part.from, part.first, true], [part.to, part.last, false]] as const)) {
 			const terminal = `${part.id}.${port}`, root = nets.find(at);
 			let terminals = expected.get(root);
 			if (terminals === undefined) { terminals = []; expected.set(root, terminals); }

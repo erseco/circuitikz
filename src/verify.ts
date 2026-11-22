@@ -13,15 +13,17 @@ export function verify(circuit: Circuit, output: Emission): string | undefined {
 	if (compiled.components.length !== circuit.parts.length + circuit.junctions.length) return 'The component inventory changed';
 	for (const part of circuit.parts) {
 		const actual = compiled.components.find((c) => c.id === part.id);
-		if (actual === undefined || actual.kind !== part.spec.kind || actual.color.kind !== 'token' || actual.color.value !== part.spec.color || actual.label !== (part.spec.label ?? '')) return `Component ${part.id} changed identity, kind or label`;
+		if (actual === undefined || actual.kind !== part.spec.kind || actual.color.kind !== (part.spec.color === 'rose' ? 'alias' : 'token') || actual.color.value !== part.spec.color || actual.label !== (part.spec.label ?? '')) return `Component ${part.id} changed identity, kind or label`;
 		const a = circuit.vertices[part.from]!, b = circuit.vertices[part.to]!;
-		const direction = b.x > a.x ? 0 : b.y < a.y ? 1 : b.x < a.x ? 2 : 3;
+		const direction = part.spec.kind === 'ground' ? 0 : b.x > a.x ? 0 : b.y < a.y ? 1 : b.x < a.x ? 2 : 3;
 		const orientation = ['right', 'down', 'left', 'up'][(direction + (part.first === part.spec.canonical ? 0 : 2)) % 4]!;
 		const x = Math.floor(((a.x - circuit.bounds.minX) + (b.x - circuit.bounds.minX)) / 2) + MARGIN;
 		const y = Math.floor(((circuit.bounds.maxY - a.y) + (circuit.bounds.maxY - b.y)) / 2) + MARGIN;
 		if (actual.x !== x || actual.y !== y || !('orientation' in actual) && orientation !== 'right'
 			|| 'orientation' in actual && (actual.orientation ?? 'right') !== orientation) return `Component ${part.id} changed placement or orientation`;
-		if (part.spec.variant !== '' && (!('variant' in actual) || actual.variant !== part.spec.variant)) return `Component ${part.id} changed variant`;
+		const variant = 'diodeType' in actual ? actual.diodeType : 'groundStyle' in actual ? actual.groundStyle : 'variant' in actual ? actual.variant : '';
+		const expectedVariant = part.spec.kind === 'diode' && part.spec.variant === '' ? 'standard' : part.spec.variant;
+		if (variant !== expectedVariant) return `Component ${part.id} changed variant`;
 	}
 	for (const junction of circuit.junctions) {
 		const actual = compiled.components.find((c) => c.id === junction.id), vertex = circuit.vertices[junction.vertex]!;
