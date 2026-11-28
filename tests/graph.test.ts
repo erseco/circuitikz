@@ -307,6 +307,15 @@ describe('overlaps and endpoints inside a segment (R-5.1.7, R-5.1.8)', () => {
 		expect(messages('\\draw (0,0) to[R] (0,2) -- (4,6) to[C] (6,6);\\draw (2,4) to[L] (2,6);')).toContain(interior(200, 400));
 	});
 
+	it.each([
+		['an overlap', '\\draw (0,0) to[R] (2,0) -- (5,0);\n\\draw (3,0) -- (6,0) to[C] (6,-2);', [OVERLAP]],
+		['an overlap with a lone wire', '\\draw (0,0) to[R] (2,0) -- (4,0);\\draw (3,0) -- (5,0);', [OVERLAP]],
+		['a wire stem ending inside a wire', '\\draw (0,0) to[R] (2,0) -- (4,0) to[C] (6,0);\\draw (3,0) -- (3,-2) to[L] (5,-2);', [interior(300, 0)]],
+		['a lone wire ending inside another', '\\draw (0,0) to[R] (2,0) -- (4,0) to[C] (6,0);\\draw (3,0) -- (3,-2);', [interior(300, 0)]]
+	])('reports %s alone, not the stubs and orphans it leaves', (_, body, expected) => {
+		expect(messages(body)).toEqual(expected);
+	});
+
 	it('turns a split T into a real junction', () => {
 		const c = accepted('\\draw (0,0) to[R] (2,0) -- (3,0) -- (4,0) to[R] (6,0);\n\\draw (3,0) to[C] (3,-2) -- (3,-3) to[R] (5,-3);');
 		expect(c.junctions).toHaveLength(1);
@@ -503,8 +512,9 @@ describe('a brute-force model of the graph on random circuits', () => {
 			return solid.some((s) => s.line === `x${x}` && s.low < y! && y! < s.high || s.line === `y${y}` && s.low < x! && x! < s.high);
 		});
 		const anchored = new Set([...terminals.keys(), ...junctions.map((v) => net.get(v)!)]);
-		const orphan = real.some((s) => wire(s) && !anchored.has(net.get(key(s.from))!));
-		const deadEnd = real.some((s) => wire(s) && [s.from, s.to].some((p) => degree.get(key(p)) === 1 && anchored.has(net.get(key(p))!)));
+		// Ambiguous geometry already explains the ends it leaves apart, so they are not reported again.
+		const orphan = !overlap && !inside && real.some((s) => wire(s) && !anchored.has(net.get(key(s.from))!));
+		const deadEnd = !overlap && !inside && real.some((s) => wire(s) && [s.from, s.to].some((p) => degree.get(key(p)) === 1 && anchored.has(net.get(key(p))!)));
 		return { expected: canonical([...terminals.values()]), junctions, overlap, inside, orphan, deadEnd, empty: terminals.size === 0 && junctions.length === 0 };
 	}
 

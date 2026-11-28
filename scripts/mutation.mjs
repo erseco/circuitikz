@@ -812,8 +812,29 @@ const mutants = [
 	{
 		name: `a dropped cycle edge leaves no dead end`,
 		file: 'src/graph.ts',
-		from: `wire !== undefined && vertices[at]!.degree === 1)`,
-		to: `wire !== undefined)`,
+		from: `wire !== undefined && vertices[at]!.degree === 1 && !ambiguous)`,
+		to: `wire !== undefined && !ambiguous)`,
+		tests: ['tests/graph.test.ts']
+	},
+	{
+		name: `ambiguous geometry hides the stubs it leaves`,
+		file: 'src/graph.ts',
+		from: `vertices[at]!.degree === 1 && !ambiguous)`,
+		to: `vertices[at]!.degree === 1)`,
+		tests: ['tests/graph.test.ts']
+	},
+	{
+		name: `ambiguous geometry hides the orphans it leaves`,
+		file: 'src/graph.ts',
+		from: `if (!ambiguous) for (const edge of links)`,
+		to: `for (const edge of links)`,
+		tests: ['tests/graph.test.ts']
+	},
+	{
+		name: `an endpoint inside a segment is ambiguous geometry`,
+		file: 'src/graph.ts',
+		from: `return overlapping || inside;`,
+		to: `return overlapping;`,
 		tests: ['tests/graph.test.ts']
 	},
 	{

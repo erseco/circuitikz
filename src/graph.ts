@@ -25,7 +25,7 @@ class Nets {
 /** Group collinear segments by primitive integer direction and offset, then
  * sweep intervals. Crossings never create vertices or electrical connections,
  * and an endpoint strictly inside another segment (a T without a shared vertex) is an error. */
-function checkOverlaps(segments: readonly Segment[], vertices: readonly Vertex[], minX: number, minY: number, diagnostics: Diagnostics): void {
+function checkOverlaps(segments: readonly Segment[], vertices: readonly Vertex[], minX: number, minY: number, diagnostics: Diagnostics): boolean {
 	const groups = new Map<string, { low: number; high: number; span: Span }[]>();
 	const directions = new Map<string, readonly [number, number]>();
 	for (const segment of segments) {
@@ -43,7 +43,7 @@ function checkOverlaps(segments: readonly Segment[], vertices: readonly Vertex[]
 		if (group === undefined) { group = []; groups.set(key, group); }
 		group.push({ low: Math.min(start, end), high: Math.max(start, end), span: segment.span });
 	}
-	let overlapping = false;
+	let overlapping = false, inside = false;
 	for (const group of groups.values()) {
 		group.sort((a, b) => a.low - b.low || a.span.start - b.span.start);
 		let high = group[0]!.high;
@@ -59,9 +59,10 @@ function checkOverlaps(segments: readonly Segment[], vertices: readonly Vertex[]
 		for (const v of vertices) {
 			const group = groups.get(`${dx},${dy},${dx * (v.y - minY) - dy * (v.x - minX)}`);
 			const at = dx === 0 ? v.y : v.x;
-			if (group?.some((item) => item.low < at && at < item.high)) interior(diagnostics, `(${v.x},${v.y})`, v.span);
+			if (group?.some((item) => item.low < at && at < item.high)) { interior(diagnostics, `(${v.x},${v.y})`, v.span); inside = true; }
 		}
 	}
+	return overlapping || inside;
 }
 
 interface Anchor { readonly terminal: string; readonly color: string; readonly order: number; readonly start: boolean; readonly span: Span }
@@ -112,7 +113,8 @@ export function buildCircuit(segments: readonly Segment[], span: Span, diagnosti
 	if (width > SCHEMATIC_LIMITS.maximumBound || height > SCHEMATIC_LIMITS.maximumBound) {
 		limit(diagnostics, 'canvas extent', SCHEMATIC_LIMITS.maximumBound - 2 * MARGIN, 'draw the circuit in a smaller area', span); return undefined;
 	}
-	checkOverlaps(segments, vertices, minX, minY, diagnostics);
+	// Ambiguous geometry leaves ends apart that the author drew together: its stubs and orphans are not reported again.
+	const ambiguous = checkOverlaps(segments, vertices, minX, minY, diagnostics);
 	const junctions: Junction[] = [];
 	const anchors = new Map<number, Anchor>();
 	for (const [id, v] of vertices.entries()) {
@@ -139,7 +141,7 @@ export function buildCircuit(segments: readonly Segment[], span: Span, diagnosti
 	const adjacency: number[][] = Array.from({ length: extra }, () => []);
 	links.forEach((edge, index) => { adjacency[edge.from]!.push(index); adjacency[edge.to]!.push(index); });
 	const hasAnchor = new Set([...expected.keys(), ...junctions.map((j) => nets.find(j.vertex))]);
-	for (const edge of links) if (edge.wire && !hasAnchor.has(nets.find(edge.from))) unsupported(diagnostics, 'A wire connected to nothing', edge.span);
+	if (!ambiguous) for (const edge of links) if (edge.wire && !hasAnchor.has(nets.find(edge.from))) unsupported(diagnostics, 'A wire connected to nothing', edge.span);
 	const connections: Connection[] = [];
 	const visited = new Set<number>();
 	for (const [origin, anchor] of anchors) {
@@ -162,7 +164,7 @@ export function buildCircuit(segments: readonly Segment[], span: Span, diagnosti
 				const wire = chain.filter((item) => item.edge.wire).at(-1);
 				// Degree counts every edge end, so a forest leaf left by a dropped cycle edge is not a dead end.
 				// Every walk starts at an anchor, so this net has one: an orphan wire is never reached here.
-				if (wire !== undefined && vertices[at]!.degree === 1) unsupported(diagnostics, 'A wire with an unconnected end', wire.edge.span);
+				if (wire !== undefined && vertices[at]!.degree === 1 && !ambiguous) unsupported(diagnostics, 'A wire with an unconnected end', wire.edge.span);
 				continue;
 			}
 			const wires = chain.filter((item) => item.edge.wire);
