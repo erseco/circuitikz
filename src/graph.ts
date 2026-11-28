@@ -2,7 +2,7 @@ import { SCHEMATIC_LIMITS } from '@schemd/core';
 import type { Point, Span } from './ast.js';
 import type { Circuit, Connection, Junction, Part, Segment, Vertex } from './circuit.js';
 import { Diagnostics, componentGeometry, interior, limit, overlap, unsupported } from './diagnostics.js';
-import { LIMITS, MARGIN } from './limits.js';
+import { LIMITS, MARGIN, SCALE } from './limits.js';
 import { canonical } from './topology.js';
 
 /** Iterative path-compressed union-find. The earlier root wins every tie. */
@@ -22,12 +22,14 @@ class Nets {
 	}
 }
 
+interface Interval { readonly low: number; readonly high: number; readonly span: Span }
+
 /** Group collinear segments by primitive integer direction and offset, then
  * sweep intervals. Crossings never create vertices or electrical connections,
- * and an endpoint strictly inside another segment (a T without a shared vertex) is an error. */
+ * and an endpoint strictly inside another segment (a T without a shared vertex) is an error.
+ * Offsets are exact: the canvas check bounds every coordinate and direction first. */
 function checkOverlaps(segments: readonly Segment[], vertices: readonly Vertex[], minX: number, minY: number, diagnostics: Diagnostics): boolean {
-	const groups = new Map<string, { low: number; high: number; span: Span }[]>();
-	const directions = new Map<string, readonly [number, number]>();
+	const lines = new Map<string, { dx: number; dy: number; offsets: Map<number, Interval[]> }>();
 	for (const segment of segments) {
 		let dx = segment.to.x - segment.from.x, dy = segment.to.y - segment.from.y;
 		if (dx === 0 && dy === 0) continue;
@@ -35,34 +37,46 @@ function checkOverlaps(segments: readonly Segment[], vertices: readonly Vertex[]
 		while (b !== 0) { const next = a % b; a = b; b = next; }
 		dx /= a; dy /= a;
 		if (dx < 0 || dx === 0 && dy < 0) { dx = -dx; dy = -dy; }
-		directions.set(`${dx},${dy}`, [dx, dy]);
-		const key = `${dx},${dy},${dx * (segment.from.y - minY) - dy * (segment.from.x - minX)}`;
+		let line = lines.get(`${dx},${dy}`);
+		if (line === undefined) {
+			// Each direction costs a lookup per vertex below, so their number has a ceiling (R-2.5.3).
+			if (lines.size === LIMITS.directions) { limit(diagnostics, 'wire directions', LIMITS.directions, 'draw the wires horizontally or vertically', segment.span); return true; }
+			line = { dx, dy, offsets: new Map() }; lines.set(`${dx},${dy}`, line);
+		}
+		const offset = dx * (segment.from.y - minY) - dy * (segment.from.x - minX);
 		const start = dx === 0 ? segment.from.y : segment.from.x;
 		const end = dx === 0 ? segment.to.y : segment.to.x;
-		let group = groups.get(key);
-		if (group === undefined) { group = []; groups.set(key, group); }
+		let group = line.offsets.get(offset);
+		if (group === undefined) { group = []; line.offsets.set(offset, group); }
 		group.push({ low: Math.min(start, end), high: Math.max(start, end), span: segment.span });
 	}
 	let overlapping = false, inside = false;
-	for (const group of groups.values()) {
-		group.sort((a, b) => a.low - b.low || a.span.start - b.span.start);
-		let high = group[0]!.high;
-		for (let i = 1; i < group.length; i += 1) {
-			const item = group[i]!;
-			if (item.low < high) { overlap(diagnostics, item.span); overlapping = true; }
-			high = Math.max(high, item.high);
+	for (const { offsets } of lines.values()) {
+		for (const group of offsets.values()) {
+			group.sort((a, b) => a.low - b.low || a.span.start - b.span.start);
+			let high = group[0]!.high;
+			for (let i = 1; i < group.length; i += 1) {
+				const item = group[i]!;
+				if (item.low < high) { overlap(diagnostics, item.span); overlapping = true; }
+				high = Math.max(high, item.high);
+			}
 		}
 	}
 	// An overlap is already ambiguous geometry; do not report its endpoints twice.
-	// ponytail: one pass over the vertices per distinct segment direction; axis-aligned circuits have two.
-	if (!overlapping) for (const [dx, dy] of directions.values()) {
-		for (const v of vertices) {
-			const group = groups.get(`${dx},${dy},${dx * (v.y - minY) - dy * (v.x - minX)}`);
+	if (overlapping) return true;
+	// With no overlap, each group is disjoint and sorted, so a binary search finds the one interval that could hold a point.
+	// One numeric lookup per vertex and direction, and at most LIMITS.directions directions.
+	for (const v of vertices) {
+		for (const { dx, dy, offsets } of lines.values()) {
+			const group = offsets.get(dx * (v.y - minY) - dy * (v.x - minX));
+			if (group === undefined) continue;
 			const at = dx === 0 ? v.y : v.x;
-			if (group?.some((item) => item.low < at && at < item.high)) { interior(diagnostics, `(${v.x},${v.y})`, v.span); inside = true; }
+			let low = 0, high = group.length;
+			while (low < high) { const middle = (low + high) >> 1; if (group[middle]!.low < at) low = middle + 1; else high = middle; }
+			if (low > 0 && at < group[low - 1]!.high) { interior(diagnostics, `(${v.x},${v.y})`, v.span); inside = true; break; }
 		}
 	}
-	return overlapping || inside;
+	return inside;
 }
 
 interface Anchor { readonly terminal: string; readonly color: string; readonly order: number; readonly start: boolean; readonly span: Span }
@@ -85,8 +99,9 @@ export function buildCircuit(segments: readonly Segment[], span: Span, diagnosti
 	const counts = new Map<string, number>();
 	const links: Link[] = [];
 	for (const [index, segment] of segments.entries()) {
+		// A zero-length wire is no branch and no point of the drawing, so it makes no vertex either.
+		if ((segment.spec === undefined || segment.spec.kind === 'wire') && segment.from.x === segment.to.x && segment.from.y === segment.to.y) continue;
 		const from = vertex(segment.from, segment.fromSpan), to = vertex(segment.to, segment.toSpan);
-		if (from === to && (segment.spec === undefined || segment.spec.kind === 'wire')) continue;
 		vertices[from]!.degree += 1; vertices[to]!.degree += 1;
 		if (segment.spec === undefined || segment.spec.kind === 'wire') {
 			if (nets.join(from, to)) links.push({ from, to, order: index * 2, wire: true, span: segment.span });
@@ -111,7 +126,7 @@ export function buildCircuit(segments: readonly Segment[], span: Span, diagnosti
 	}
 	const width = maxX - minX + 2 * MARGIN, height = maxY - minY + 2 * MARGIN;
 	if (width > SCHEMATIC_LIMITS.maximumBound || height > SCHEMATIC_LIMITS.maximumBound) {
-		limit(diagnostics, 'canvas extent', SCHEMATIC_LIMITS.maximumBound - 2 * MARGIN, 'draw the circuit in a smaller area', span); return undefined;
+		limit(diagnostics, 'canvas extent', (SCHEMATIC_LIMITS.maximumBound - 2 * MARGIN) / SCALE, 'draw the circuit within that many TikZ units across and down', span); return undefined;
 	}
 	// Ambiguous geometry leaves ends apart that the author drew together: its stubs and orphans are not reported again.
 	const ambiguous = checkOverlaps(segments, vertices, minX, minY, diagnostics);

@@ -11,7 +11,7 @@ export function labelOf(tokens: readonly Token[], source: string, diagnostics: D
 	const math = parts[0]?.value === '$' && parts.at(-1)?.value === '$' && parts.length > 1;
 	if (math) parts = parts.slice(1, -1);
 	const output: string[] = [];
-	let refused = false;
+	let refused = false, word = false;
 	let previous: Token | undefined;
 	for (const token of parts) {
 		if (previous !== undefined) {
@@ -24,17 +24,22 @@ export function labelOf(tokens: readonly Token[], source: string, diagnostics: D
 				else if (c === '\n' || c === '\r') { if (!comment) space = true; comment = false; lineStart = true; if (c === '\r' && source[i + 1] === '\n') i += 1; }
 				else if (!comment && !lineStart) space = true;
 			}
-			if (space) output.push(' ');
+			// TeX ignores blanks in math; core would draw them.
+			if (space && !math) output.push(' ');
 		}
 		previous = token;
 		if (token.kind === 'command') {
-			if (math && ['\\,', '\\;', '\\ '].includes(token.value)) output.push(' ');
-			else if (math && COMMANDS.has(token.value.slice(1))) output.push(token.value);
+			if (math && ['\\,', '\\;', '\\ '].includes(token.value)) { output.push(' '); word = false; }
+			else if (math && COMMANDS.has(token.value.slice(1))) { output.push(token.value); word = true; }
 			else { unsupported(diagnostics, `Label command ${token.value}`, token); refused = true; }
 			continue;
 		}
 		for (const c of token.value) {
-			if (/[\p{L}\p{N}]/u.test(c) || " .,-+/():'".includes(c) || math && '{}_^'.includes(c)) output.push(c);
+			if (/[\p{L}\p{N}]/u.test(c) || " .,-+/():'".includes(c) || math && '{}_^'.includes(c)) {
+				// Core reads a control word up to the next non-letter: \mu then F must not become \muF.
+				if (word && /[A-Za-z]/.test(c)) output.push('{}');
+				output.push(c); word = false;
+			}
 			else { unsupported(diagnostics, `Label character ${c}`, token); refused = true; }
 		}
 	}

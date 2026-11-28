@@ -43,9 +43,9 @@ export function partOf(keys: readonly Key[], source: string, fixBatteries: boole
 		const found = DEFINITIONS.find(([names]) => names.includes(key.name))?.[1];
 		let labelKey = false;
 		if (found !== undefined) {
+			// A refused second kind is reported once, not also as a second label.
 			if (definition !== undefined) syntax(diagnostics, 'exactly one component kind in to[...]', key.span);
-			else definition = found;
-			labelKey = key.value !== undefined;
+			else { definition = found; labelKey = key.value !== undefined; }
 		} else if (['l', 'l_', 'l^', 'a', 'a_', 'a^'].includes(key.name) && key.value !== undefined) {
 			labelKey = true;
 			if (key.name !== 'l') presentation(diagnostics, key.name, key.span);

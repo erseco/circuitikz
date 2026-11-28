@@ -303,6 +303,11 @@ describe('overlaps and endpoints inside a segment (R-5.1.7, R-5.1.8)', () => {
 		expect(found.filter((m) => m.startsWith('Endpoint (')), at).toHaveLength(count);
 	});
 
+	it('reports an endpoint at the crossing of two segments once', () => {
+		const found = messages('\\draw (0,0) to[R] (0,2) -- (4,2) to[C] (4,0);\\draw (2,1) to[L] (2,3);\\draw (2,2) -- (3,3) to[R] (3,5);');
+		expect(found.filter((m) => m === interior(200, 200))).toHaveLength(1);
+	});
+
 	it('finds a T on a diagonal wire too', () => {
 		expect(messages('\\draw (0,0) to[R] (0,2) -- (4,6) to[C] (6,6);\\draw (2,4) to[L] (2,6);')).toContain(interior(200, 400));
 	});
@@ -358,12 +363,39 @@ describe('the canvas (core SCHEMATIC_LIMITS.maximumBound)', () => {
 		expect(accepted(body(most)).bounds).toMatchObject({ minX: 0 });
 		const { circuit, diagnostics } = graphOf(wrap(body(most + 1)));
 		expect(circuit).toBeUndefined();
-		expect(diagnostics.map((d) => d.message)).toEqual([`The canvas extent limit is ${most}; draw the circuit in a smaller area.`]);
+		// Reported in TikZ units, which is what the author writes.
+		expect(diagnostics.map((d) => d.message)).toEqual([`The canvas extent limit is ${most / 100}; draw the circuit within that many TikZ units across and down.`]);
+	});
+
+	it('leaves a zero-length wire out of the drawing, so it moves no bound', () => {
+		expect(accepted('\\draw (0,0) to[R] (2,0);\\draw (11000,0) -- (11000,0);').bounds).toEqual(accepted('\\draw (0,0) to[R] (2,0);').bounds);
+		expect(accepted('\\draw (-50,50) -- (-50,50);\\draw (0,0) to[R] (2,0);').bounds).toEqual(accepted('\\draw (0,0) to[R] (2,0);').bounds);
 	});
 
 	it('measures from the drawing, not from the origin', () => {
 		const c = accepted('\\draw (-50,-50) to[R] (-48,-50);');
 		expect(c.bounds).toEqual({ minX: -5000, maxY: -5000, width: 200 + 2 * MARGIN, height: 2 * MARGIN });
+	});
+});
+
+describe('segment directions (R-2.5.3)', () => {
+	const star = (n: number) => `\\draw (0,0) to[R] (0,-2);\n\\draw${Array.from({ length: n }, (_, k) => ` (0,0) -- (${k + 1},1)`).join('')};`;
+	it('accepts as many directions as the ceiling, counting the part\'s own', () => {
+		// The part is vertical; the star adds LIMITS.directions - 1 slopes (k, 1), all distinct.
+		expect(messages(star(LIMITS.directions - 1)).filter((m) => m.startsWith('The wire directions'))).toEqual([]);
+	});
+
+	it('refuses one direction more, at the segment that brings it, and reports nothing after', () => {
+		const source = wrap(star(LIMITS.directions)), { diagnostics } = graphOf(source);
+		expect(diagnostics.map(({ code, message, line }) => ({ code, message, line }))).toEqual([{ code: 'limit', line: 3,
+			message: 'The wire directions limit is 64; draw the wires horizontally or vertically.' }]);
+		// The span is the 64th wire of the star, the first with a 65th direction.
+		const text = source.split('\n')[2]!;
+		expect(text.slice(diagnostics[0]!.column - 1)).toMatch(/^-- \(64,1\)/);
+	});
+
+	it('counts a direction and its reverse once, and parallel lines once', () => {
+		expect(messages('\\draw (0,0) to[R] (2,0) -- (2,2) to[C] (0,2) -- (0,0);\\draw (4,0) to[L] (6,0) -- (6,2) to[R] (4,2) -- (4,0);').filter((m) => m.includes('directions'))).toEqual([]);
 	});
 });
 
@@ -474,7 +506,8 @@ describe('a brute-force model of the graph on random circuits', () => {
 		const wire = (s: Step) => s.kind === '--' || s.kind === 'short';
 		const real = steps.filter((s) => !(wire(s) && key(s.from) === key(s.to)));
 		const degree = new Map<string, number>(), order: string[] = [];
-		for (const s of steps) for (const p of [s.from, s.to]) if (!order.includes(key(p))) order.push(key(p));
+		// A zero-length wire makes no point of the drawing, so its point is no vertex.
+		for (const s of real) for (const p of [s.from, s.to]) if (!order.includes(key(p))) order.push(key(p));
 		for (const s of real) for (const p of [s.from, s.to]) degree.set(key(p), (degree.get(key(p)) ?? 0) + 1);
 		// Nets: flood fill over wire segments.
 		const net = new Map<string, number>();

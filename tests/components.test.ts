@@ -1,3 +1,4 @@
+import { parseMathLabel } from '@schemd/core';
 import { describe, expect, it } from 'vitest';
 
 import { convertCircuitikz } from '../src/index.js';
@@ -218,6 +219,34 @@ describe('label text (R-4.5.1 to R-4.5.3)', () => {
 
 	it('reports a label of refused characters once per character, not as empty', () => {
 		expect(messages('R=*?')).toEqual([unsupported('Label character *'), unsupported('Label character ?')]);
+	});
+
+	it.each([
+		['$R_ 1$', 'R_1', [['text', 'R'], ['subscript', '1']]],
+		['$x^ 2$', 'x^2', [['text', 'x'], ['superscript', '2']]],
+		['$V_ {out}$', 'V_{out}', [['text', 'V'], ['subscript', 'out']]],
+		['$R 1$', 'R1', [['text', 'R1']]],
+		['$R\n_1$', 'R_1', [['text', 'R'], ['subscript', '1']]]
+	])('drops the blanks TeX ignores in math: %j becomes %j', (text, label, segments) => {
+		expect(specOf(`R=${text}`).spec?.label).toBe(label);
+		// What core draws from it, segment by segment.
+		expect(parseMathLabel(label).map((x) => [x.kind, x.value])).toEqual(segments);
+	});
+
+	it.each([
+		['$\\mu F$', '\\mu{}F', 'μF'], ['$\\Omega%c\nR$', '\\Omega{}R', 'ΩR'], ['$\\mu\\ F$', '\\mu F', 'μ F'],
+		['$\\mu 2$', '\\mu2', 'μ2'], ['$\\mu_1$', '\\mu_1', 'μ1'], ['$\\mu α$', '\\muα', 'μα'], ['$\\pi\\mu$', '\\pi\\mu', 'πμ']
+	])('keeps a control word apart from the letter after it: %j becomes %j, drawn %j', (text, label, drawn) => {
+		expect(specOf(`R=${text}`).spec?.label).toBe(label);
+		expect(parseMathLabel(label).map((x) => x.value).join('')).toBe(drawn);
+	});
+
+	it('keeps the blanks of a text label, which TeX prints', () => {
+		expect(specOf('R=a b').spec?.label).toBe('a b');
+	});
+
+	it('reports a second kind written with a value once, not also as a second label', () => {
+		expect(specOf('R=1,C=2').diagnostics).toEqual([expect.objectContaining({ message: expected('exactly one component kind in to[...]'), column: 20 })]);
 	});
 
 	it('reads a lone $ as a character, not as empty math', () => {

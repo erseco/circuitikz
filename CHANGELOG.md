@@ -22,12 +22,17 @@ Written for someone deciding whether to upgrade. Sections: `Fixed`, `Added`, `Re
   label or `invert` on `short`, or a valued `invert` is an error; repeated `invert` stays inverted, and
   `fixbatteries` turns batteries only. Labels keep R-4.5.3's characters, with `_`, `^`, braces, the
   core math commands and `\,` `\;` `\ ` in math only, and read whitespace as TeX does: a comment
-  joins the next line with no space (checked against CircuiTikZ with tectonic). A label refused for
-  its content is not also reported as empty. Points join only when their integer coordinates are equal;
+  joins the next line with no space (checked against CircuiTikZ with tectonic), and blanks inside math
+  are dropped, as TeX drops them. A control word followed by a letter gets `{}` after it, so core
+  draws `$\mu F$` as μF instead of printing `\muF`. A label refused for its content is not also
+  reported as empty, and a second kind written with a value is one error, not two. Points join only when their integer coordinates are equal;
   `|-` and `-|` are split at their corner. The graph reports a diagonal part, one shorter than 0.84
   units, segments that overlap along their length, an endpoint inside another segment, a wire stub or
-  a wire connected to nothing, a circuit with no part or junction, more than 512 junctions, and a
-  drawing larger than core's canvas. It also computes, for the emitter to come, the nets, the junctions
+  a wire connected to nothing, a circuit with no part or junction, more than 512 junctions, more than
+  64 distinct segment directions (a new R-2.5.3 ceiling: the endpoint check costs one lookup per vertex
+  and direction), and a drawing larger than core's canvas, stated in TikZ units. An overlap or an
+  endpoint inside a segment is reported alone, without the stubs and orphan wires it leaves apart. A
+  zero-length wire makes no vertex, so it moves no bound. It also computes, for the emitter to come, the nets, the junctions
   at every vertex of three or more edge ends, and one connection per edge of the contracted wire
   forest, running the way the pen first drew it.
 - The topology oracle: `connectivityOf`, `connectivityDifference` and `canonical` compare a schemd
@@ -41,7 +46,7 @@ Written for someone deciding whether to upgrade. Sections: `Fixed`, `Added`, `Re
 ### Verified
 
 - 100% coverage on all four axes, every mutant killed, a source-policy test, a packaging test,
-  61 rejection fixtures that pin each diagnostic's full message and position, and the 5 KiB M1 size
+  62 rejection fixtures that pin each diagnostic's full message and position, and the 5 KiB M1 size
   budget.
 - A fuzz contract (`bun run test:fuzz:contract`, run in CI and by `release:check`): 20,000 seeded
   inputs per run, each converted twice in an isolated worker with a 2-second deadline that starts once

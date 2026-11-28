@@ -5,6 +5,7 @@ export const LIMITS = Object.freeze({
 	pathElements: 4096,
 	components: 512,
 	junctions: 512,
+	directions: 64,
 	braceDepth: 32
 });
 

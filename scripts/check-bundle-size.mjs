@@ -25,7 +25,7 @@ const BUDGETS = [
 		   4186 B gzip / 3716 B brotli; with the coordinate resolver, 4705 B / 4206 B.
 		   M2's budget from R-8.5.4, raised by its first pull request: the component
 		   table, label transcription and circuit graph (nets, junctions, overlap and
-		   dead-end checks, connections) measured 7688 B gzip / 6922 B brotli, +2983 B
+		   dead-end checks, connections) measured 7895 B gzip / 7099 B brotli, +3190 B
 		   gzip. The emitter and the verification oracle must fit in what is left. */
 		maxGzipBytes: 9 * 1024,
 		maxBrotliBytes: 9 * 1024

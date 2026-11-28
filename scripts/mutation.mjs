@@ -621,13 +621,6 @@ const mutants = [
 		tests: ['tests/components.test.ts']
 	},
 	{
-		name: `math spacing commands are spaces`,
-		file: 'src/labels.ts',
-		from: `if (math && ['\\\\,', '\\\\;', '\\\\ '].includes(token.value)) output.push(' ');`,
-		to: `if (false) output.push(' ');`,
-		tests: ['tests/components.test.ts']
-	},
-	{
 		name: `label commands are math only`,
 		file: 'src/labels.ts',
 		from: `else if (math && COMMANDS.has(`,
@@ -675,13 +668,6 @@ const mutants = [
 		from: `if (!refused) syntax(`,
 		to: `syntax(`,
 		tests: ['tests/components.test.ts']
-	},
-	{
-		name: `a zero-length wire is no branch`,
-		file: 'src/graph.ts',
-		from: `if (from === to && (segment.spec === undefined || segment.spec.kind === 'wire')) continue;`,
-		to: ``,
-		tests: ['tests/graph.test.ts']
 	},
 	{
 		name: `a wire that closes a cycle adds no link`,
@@ -768,20 +754,6 @@ const mutants = [
 		tests: ['tests/graph.test.ts']
 	},
 	{
-		name: `an endpoint is inside only strictly`,
-		file: 'src/graph.ts',
-		from: `item.low < at && at < item.high`,
-		to: `item.low <= at && at <= item.high`,
-		tests: ['tests/graph.test.ts']
-	},
-	{
-		name: `an overlap hides its endpoints`,
-		file: 'src/graph.ts',
-		from: `if (!overlapping) for`,
-		to: `for`,
-		tests: ['tests/graph.test.ts']
-	},
-	{
 		name: `three edge ends make a junction`,
 		file: 'src/graph.ts',
 		from: `if (v.degree < 3) continue;`,
@@ -828,13 +800,6 @@ const mutants = [
 		file: 'src/graph.ts',
 		from: `if (!ambiguous) for (const edge of links)`,
 		to: `for (const edge of links)`,
-		tests: ['tests/graph.test.ts']
-	},
-	{
-		name: `an endpoint inside a segment is ambiguous geometry`,
-		file: 'src/graph.ts',
-		from: `return overlapping || inside;`,
-		to: `return overlapping;`,
 		tests: ['tests/graph.test.ts']
 	},
 	{
@@ -891,6 +856,125 @@ const mutants = [
 		file: 'src/limits.ts',
 		from: `junctions: 512,`,
 		to: `junctions: 511,`,
+		tests: ['tests/graph.test.ts']
+	},
+	{
+		name: `math spacing commands are spaces`,
+		file: 'src/labels.ts',
+		from: `if (math && ['\\\\,', '\\\\;', '\\\\ '].includes(token.value)) { output.push(' '); word = false; }`,
+		to: `if (false) { output.push(' '); word = false; }`,
+		tests: ['tests/components.test.ts']
+	},
+	{
+		name: `a math space ends a control word`,
+		file: 'src/labels.ts',
+		from: `{ output.push(' '); word = false; }`,
+		to: `output.push(' ');`,
+		tests: ['tests/components.test.ts']
+	},
+	{
+		name: `TeX ignores blanks in math`,
+		file: 'src/labels.ts',
+		from: `if (space && !math) output.push(' ');`,
+		to: `if (space) output.push(' ');`,
+		tests: ['tests/components.test.ts']
+	},
+	{
+		name: `a control word is kept apart from the next letter`,
+		file: 'src/labels.ts',
+		from: `if (word && /[A-Za-z]/.test(c)) output.push('{}');`,
+		to: ``,
+		tests: ['tests/components.test.ts']
+	},
+	{
+		name: `only an ASCII letter continues a control word`,
+		file: 'src/labels.ts',
+		from: `if (word && /[A-Za-z]/.test(c))`,
+		to: `if (word)`,
+		tests: ['tests/components.test.ts']
+	},
+	{
+		name: `a refused second kind is not also a second label`,
+		file: 'src/components.ts',
+		from: `else { definition = found; labelKey = key.value !== undefined; }`,
+		to: `else definition = found; labelKey = key.value !== undefined;`,
+		tests: ['tests/components.test.ts']
+	},
+	{
+		name: `a zero-length wire is no branch and no vertex`,
+		file: 'src/graph.ts',
+		from: `if ((segment.spec === undefined || segment.spec.kind === 'wire') && segment.from.x === segment.to.x && segment.from.y === segment.to.y) continue;`,
+		to: ``,
+		tests: ['tests/graph.test.ts']
+	},
+	{
+		name: `a zero-length wire is only one with equal ends`,
+		file: 'src/graph.ts',
+		from: `segment.from.x === segment.to.x && segment.from.y === segment.to.y) continue;`,
+		to: `segment.from.x === segment.to.x) continue;`,
+		tests: ['tests/graph.test.ts']
+	},
+	{
+		name: `the canvas limit is stated in TikZ units`,
+		file: 'src/graph.ts',
+		from: `(SCHEMATIC_LIMITS.maximumBound - 2 * MARGIN) / SCALE`,
+		to: `(SCHEMATIC_LIMITS.maximumBound - 2 * MARGIN)`,
+		tests: ['tests/graph.test.ts']
+	},
+	{
+		name: `an overlap hides its endpoints`,
+		file: 'src/graph.ts',
+		from: `if (overlapping) return true;`,
+		to: ``,
+		tests: ['tests/graph.test.ts']
+	},
+	{
+		name: `an endpoint inside a segment is ambiguous geometry`,
+		file: 'src/graph.ts',
+		from: `	return inside;`,
+		to: `	return false;`,
+		tests: ['tests/graph.test.ts']
+	},
+	{
+		name: `an endpoint at the start of a segment is not inside it`,
+		file: 'src/graph.ts',
+		from: `if (group[middle]!.low < at)`,
+		to: `if (group[middle]!.low <= at)`,
+		tests: ['tests/graph.test.ts']
+	},
+	{
+		name: `an endpoint at the end of a segment is not inside it`,
+		file: 'src/graph.ts',
+		from: `at < group[low - 1]!.high`,
+		to: `at <= group[low - 1]!.high`,
+		tests: ['tests/graph.test.ts']
+	},
+	{
+		name: `the search looks left of the insertion point`,
+		file: 'src/graph.ts',
+		from: `if (low > 0 && at < group[low - 1]!.high)`,
+		to: `if (low < group.length && at < group[low]!.high)`,
+		tests: ['tests/graph.test.ts']
+	},
+	{
+		name: `an endpoint is reported once`,
+		file: 'src/graph.ts',
+		from: `inside = true; break; }`,
+		to: `inside = true; }`,
+		tests: ['tests/graph.test.ts']
+	},
+	{
+		name: `the direction budget is inclusive`,
+		file: 'src/graph.ts',
+		from: `if (lines.size === LIMITS.directions)`,
+		to: `if (lines.size === LIMITS.directions + 1)`,
+		tests: ['tests/graph.test.ts']
+	},
+	{
+		name: `the direction ceiling is stable`,
+		file: 'src/limits.ts',
+		from: `directions: 64,`,
+		to: `directions: 63,`,
 		tests: ['tests/graph.test.ts']
 	}
 ];
